@@ -1,0 +1,46 @@
+{
+  "id": "multi-swarm",
+  "name": "Multi-Robot Swarm",
+  "purpose": "Coordinated 10-robot route planning, traffic pressure, and conflict resolution under high load.",
+  "grid": { "width": 50, "height": 50, "tileSizeM": 0.5 },
+  "robots": [
+    { "id": "swarm-1", "start": { "x": 2, "y": 2 }, "headingRad": 0 },
+    { "id": "swarm-2", "start": { "x": 4, "y": 2 }, "headingRad": 0 },
+    { "id": "swarm-3", "start": { "x": 6, "y": 2 }, "headingRad": 0 },
+    { "id": "swarm-4", "start": { "x": 8, "y": 2 }, "headingRad": 0 },
+    { "id": "swarm-5", "start": { "x": 10, "y": 2 }, "headingRad": 0 },
+    { "id": "swarm-6", "start": { "x": 12, "y": 2 }, "headingRad": 0 },
+    { "id": "swarm-7", "start": { "x": 14, "y": 2 }, "headingRad": 0 },
+    { "id": "swarm-8", "start": { "x": 16, "y": 2 }, "headingRad": 0 },
+    { "id": "swarm-9", "start": { "x": 18, "y": 2 }, "headingRad": 0 },
+    { "id": "swarm-10", "start": { "x": 20, "y": 2 }, "headingRad": 0 }
+  ],
+  "shelves": [
+    { "id": "swarm-shelf-a", "position": { "x": 15, "y": 10 }, "size": { "x": 1, "y": 18 }, "capacity": 220, "stockLevel": 160, "itemId": "swarm-bin" },
+    { "id": "swarm-shelf-b", "position": { "x": 27, "y": 10 }, "size": { "x": 1, "y": 18 }, "capacity": 220, "stockLevel": 138, "itemId": "line-kit" }
+  ],
+  "conveyors": [
+    { "id": "conveyor-swarm", "start": { "x": 5, "y": 43 }, "end": { "x": 44, "y": 43 }, "speedMps": 0.45, "active": true, "crateCount": 18 }
+  ],
+  "docks": [
+    { "id": "dock-swarm-1", "position": { "x": 47, "y": 6 }, "status": "EMPTY" },
+    { "id": "dock-swarm-2", "position": { "x": 47, "y": 14 }, "status": "EMPTY" }
+  ],
+  "chargers": [
+    { "id": "charger-swarm-1", "position": { "x": 2, "y": 47 }, "chargeRateSocPerSecond": 0.04, "occupiedBy": null },
+    { "id": "charger-swarm-2", "position": { "x": 5, "y": 47 }, "chargeRateSocPerSecond": 0.04, "occupiedBy": null },
+    { "id": "charger-swarm-3", "position": { "x": 8, "y": 47 }, "chargeRateSocPerSecond": 0.04, "occupiedBy": null }
+  ],
+  "workers": [
+    { "id": "worker-swarm-1", "position": { "x": 20, "y": 33 }, "route": [{ "x": 20, "y": 33 }, { "x": 38, "y": 33 }], "routeIndex": 1, "state": "WALKING_TO_NEXT", "safetyBubbleM": 1.5 },
+    { "id": "worker-swarm-2", "position": { "x": 34, "y": 36 }, "route": [{ "x": 34, "y": 36 }, { "x": 12, "y": 36 }], "routeIndex": 1, "state": "WALKING_TO_NEXT", "safetyBubbleM": 1.5 }
+  ],
+  "zones": [],
+  "hazards": [],
+  "tasks": [
+    { "id": "task-swarm-1", "priority": "HIGH", "pickup": { "x": 14, "y": 12 }, "dropoff": { "x": 47, "y": 6 }, "itemId": "swarm-bin", "weightKg": 1.6 },
+    { "id": "task-swarm-2", "priority": "HIGH", "pickup": { "x": 26, "y": 12 }, "dropoff": { "x": 47, "y": 14 }, "itemId": "line-kit", "weightKg": 1.4 }
+  ],
+  "startHour": 9
+}
+

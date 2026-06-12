@@ -1,0 +1,45 @@
+{
+  "id": "large-warehouse",
+  "name": "Large Industrial Facility",
+  "purpose": "Fleet coordination, congestion, dynamic replanning, and mixed priority work at larger scale.",
+  "grid": { "width": 60, "height": 60, "tileSizeM": 0.5 },
+  "robots": [
+    { "id": "robot-1", "start": { "x": 4, "y": 4 }, "headingRad": 0 },
+    { "id": "robot-2", "start": { "x": 6, "y": 4 }, "headingRad": 0 },
+    { "id": "robot-3", "start": { "x": 8, "y": 4 }, "headingRad": 0 },
+    { "id": "robot-4", "start": { "x": 10, "y": 4 }, "headingRad": 0 },
+    { "id": "robot-5", "start": { "x": 12, "y": 4 }, "headingRad": 0 }
+  ],
+  "shelves": [
+    { "id": "shelf-a", "position": { "x": 14, "y": 10 }, "size": { "x": 1, "y": 14 }, "capacity": 180, "stockLevel": 120, "itemId": "motor-kit" },
+    { "id": "shelf-b", "position": { "x": 22, "y": 10 }, "size": { "x": 1, "y": 14 }, "capacity": 180, "stockLevel": 110, "itemId": "sensor-pack" },
+    { "id": "shelf-c", "position": { "x": 30, "y": 10 }, "size": { "x": 1, "y": 14 }, "capacity": 180, "stockLevel": 96, "itemId": "drive-wheel" },
+    { "id": "shelf-d", "position": { "x": 38, "y": 10 }, "size": { "x": 1, "y": 14 }, "capacity": 180, "stockLevel": 152, "itemId": "battery" }
+  ],
+  "conveyors": [
+    { "id": "conveyor-1", "start": { "x": 8, "y": 48 }, "end": { "x": 52, "y": 48 }, "speedMps": 0.42, "active": true, "crateCount": 12 },
+    { "id": "conveyor-2", "start": { "x": 8, "y": 53 }, "end": { "x": 52, "y": 53 }, "speedMps": 0.36, "active": true, "crateCount": 8 }
+  ],
+  "docks": [
+    { "id": "dock-1", "position": { "x": 56, "y": 8 }, "status": "EMPTY" },
+    { "id": "dock-2", "position": { "x": 56, "y": 16 }, "status": "EMPTY" },
+    { "id": "dock-3", "position": { "x": 56, "y": 24 }, "status": "EMPTY" }
+  ],
+  "chargers": [
+    { "id": "charger-1", "position": { "x": 4, "y": 56 }, "chargeRateSocPerSecond": 0.04, "occupiedBy": null },
+    { "id": "charger-2", "position": { "x": 7, "y": 56 }, "chargeRateSocPerSecond": 0.04, "occupiedBy": null },
+    { "id": "charger-3", "position": { "x": 10, "y": 56 }, "chargeRateSocPerSecond": 0.04, "occupiedBy": null }
+  ],
+  "workers": [
+    { "id": "worker-1", "position": { "x": 18, "y": 32 }, "route": [{ "x": 18, "y": 32 }, { "x": 42, "y": 32 }, { "x": 42, "y": 44 }], "routeIndex": 1, "state": "WALKING_TO_NEXT", "safetyBubbleM": 1.5 },
+    { "id": "worker-2", "position": { "x": 34, "y": 36 }, "route": [{ "x": 34, "y": 36 }, { "x": 20, "y": 36 }, { "x": 20, "y": 46 }], "routeIndex": 1, "state": "WALKING_TO_NEXT", "safetyBubbleM": 1.5 }
+  ],
+  "zones": [],
+  "hazards": [],
+  "tasks": [
+    { "id": "task-101", "priority": "CRITICAL", "pickup": { "x": 13, "y": 12 }, "dropoff": { "x": 56, "y": 8 }, "itemId": "motor-kit", "weightKg": 1.7 },
+    { "id": "task-102", "priority": "HIGH", "pickup": { "x": 21, "y": 12 }, "dropoff": { "x": 56, "y": 16 }, "itemId": "sensor-pack", "weightKg": 1.1 }
+  ],
+  "startHour": 12
+}
+

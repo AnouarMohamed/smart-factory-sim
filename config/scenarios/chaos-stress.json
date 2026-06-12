@@ -1,0 +1,40 @@
+{
+  "id": "chaos-stress",
+  "name": "Chaos Stress Test",
+  "purpose": "High density robots, workers, random-style failures, emergency tasks, and congestion.",
+  "grid": { "width": 40, "height": 40, "tileSizeM": 0.5 },
+  "robots": [
+    { "id": "robot-1", "start": { "x": 2, "y": 2 }, "headingRad": 0 },
+    { "id": "robot-2", "start": { "x": 4, "y": 2 }, "headingRad": 0 },
+    { "id": "robot-3", "start": { "x": 6, "y": 2 }, "headingRad": 0 },
+    { "id": "robot-4", "start": { "x": 8, "y": 2 }, "headingRad": 0 }
+  ],
+  "shelves": [
+    { "id": "stress-a", "position": { "x": 12, "y": 8 }, "size": { "x": 1, "y": 10 }, "capacity": 150, "stockLevel": 90, "itemId": "urgent-kit" },
+    { "id": "stress-b", "position": { "x": 20, "y": 8 }, "size": { "x": 1, "y": 10 }, "capacity": 150, "stockLevel": 130, "itemId": "battery" }
+  ],
+  "conveyors": [
+    { "id": "conveyor-chaos", "start": { "x": 4, "y": 34 }, "end": { "x": 35, "y": 34 }, "speedMps": 0.55, "active": true, "crateCount": 16 }
+  ],
+  "docks": [
+    { "id": "dock-chaos", "position": { "x": 37, "y": 4 }, "status": "EMPTY" }
+  ],
+  "chargers": [
+    { "id": "charger-chaos-1", "position": { "x": 2, "y": 37 }, "chargeRateSocPerSecond": 0.04, "occupiedBy": null },
+    { "id": "charger-chaos-2", "position": { "x": 5, "y": 37 }, "chargeRateSocPerSecond": 0.04, "occupiedBy": null }
+  ],
+  "workers": [
+    { "id": "worker-chaos-1", "position": { "x": 14, "y": 24 }, "route": [{ "x": 14, "y": 24 }, { "x": 32, "y": 24 }, { "x": 32, "y": 32 }], "routeIndex": 1, "state": "WALKING_TO_NEXT", "safetyBubbleM": 1.5 },
+    { "id": "worker-chaos-2", "position": { "x": 28, "y": 26 }, "route": [{ "x": 28, "y": 26 }, { "x": 10, "y": 26 }, { "x": 10, "y": 32 }], "routeIndex": 1, "state": "WALKING_TO_NEXT", "safetyBubbleM": 1.5 }
+  ],
+  "zones": [
+    { "id": "blocked-chaos", "type": "HAZARD", "label": "Blocked Junction", "cells": [{ "x": 18, "y": 20 }, { "x": 19, "y": 20 }, { "x": 20, "y": 20 }], "costMultiplier": 999 }
+  ],
+  "hazards": [],
+  "tasks": [
+    { "id": "task-chaos-1", "priority": "CRITICAL", "pickup": { "x": 11, "y": 10 }, "dropoff": { "x": 37, "y": 4 }, "itemId": "urgent-kit", "weightKg": 1.9 },
+    { "id": "task-chaos-2", "priority": "CRITICAL", "pickup": { "x": 19, "y": 10 }, "dropoff": { "x": 37, "y": 4 }, "itemId": "battery", "weightKg": 2.4 }
+  ],
+  "startHour": 15
+}
+

@@ -1,0 +1,40 @@
+{
+  "id": "small-warehouse",
+  "name": "Small Warehouse",
+  "purpose": "Baseline workflow with two robots, compact shelves, one conveyor, workers, charging, and docks.",
+  "grid": { "width": 20, "height": 20, "tileSizeM": 0.5 },
+  "robots": [
+    { "id": "robot-1", "start": { "x": 2, "y": 2 }, "headingRad": 0 },
+    { "id": "robot-2", "start": { "x": 3, "y": 3 }, "headingRad": 0.2 }
+  ],
+  "shelves": [
+    { "id": "shelf-a1", "position": { "x": 6, "y": 4 }, "size": { "x": 1, "y": 5 }, "capacity": 100, "stockLevel": 72, "itemId": "motor-kit" },
+    { "id": "shelf-b1", "position": { "x": 10, "y": 4 }, "size": { "x": 1, "y": 5 }, "capacity": 100, "stockLevel": 54, "itemId": "sensor-pack" },
+    { "id": "shelf-c1", "position": { "x": 14, "y": 4 }, "size": { "x": 1, "y": 5 }, "capacity": 100, "stockLevel": 81, "itemId": "drive-wheel" }
+  ],
+  "conveyors": [
+    { "id": "conveyor-1", "start": { "x": 3, "y": 15 }, "end": { "x": 16, "y": 15 }, "speedMps": 0.35, "active": true, "crateCount": 4 }
+  ],
+  "docks": [
+    { "id": "dock-1", "position": { "x": 18, "y": 3 }, "status": "EMPTY" },
+    { "id": "dock-2", "position": { "x": 18, "y": 8 }, "status": "EMPTY" }
+  ],
+  "chargers": [
+    { "id": "charger-1", "position": { "x": 1, "y": 18 }, "chargeRateSocPerSecond": 0.04, "occupiedBy": null },
+    { "id": "charger-2", "position": { "x": 3, "y": 18 }, "chargeRateSocPerSecond": 0.04, "occupiedBy": null }
+  ],
+  "workers": [
+    { "id": "worker-1", "position": { "x": 5, "y": 12 }, "route": [{ "x": 5, "y": 12 }, { "x": 9, "y": 12 }, { "x": 9, "y": 16 }], "routeIndex": 1, "state": "WALKING_TO_NEXT", "safetyBubbleM": 1.5 },
+    { "id": "worker-2", "position": { "x": 12, "y": 12 }, "route": [{ "x": 12, "y": 12 }, { "x": 16, "y": 12 }, { "x": 16, "y": 16 }], "routeIndex": 1, "state": "WALKING_TO_NEXT", "safetyBubbleM": 1.5 }
+  ],
+  "zones": [
+    { "id": "priority-main", "type": "PRIORITY_CORRIDOR", "label": "Main Corridor", "cells": [{ "x": 2, "y": 11 }, { "x": 3, "y": 11 }, { "x": 4, "y": 11 }, { "x": 5, "y": 11 }, { "x": 6, "y": 11 }, { "x": 7, "y": 11 }, { "x": 8, "y": 11 }, { "x": 9, "y": 11 }, { "x": 10, "y": 11 }, { "x": 11, "y": 11 }, { "x": 12, "y": 11 }, { "x": 13, "y": 11 }, { "x": 14, "y": 11 }, { "x": 15, "y": 11 }, { "x": 16, "y": 11 }], "costMultiplier": 0.8 }
+  ],
+  "hazards": [],
+  "tasks": [
+    { "id": "task-001", "priority": "NORMAL", "pickup": { "x": 5, "y": 6 }, "dropoff": { "x": 18, "y": 3 }, "itemId": "motor-kit", "weightKg": 1.4 },
+    { "id": "task-002", "priority": "HIGH", "pickup": { "x": 9, "y": 6 }, "dropoff": { "x": 18, "y": 8 }, "itemId": "sensor-pack", "weightKg": 0.8 }
+  ],
+  "startHour": 10
+}
+

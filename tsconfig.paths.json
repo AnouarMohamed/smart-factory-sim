@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@core/*": ["src/core/*"],
+      "@physics/*": ["src/physics/*"],
+      "@pathfinding/*": ["src/pathfinding/*"],
+      "@robot/*": ["src/robot/*"],
+      "@factory/*": ["src/factory/*"],
+      "@fleet/*": ["src/fleet/*"],
+      "@iot/*": ["src/iot/*"],
+      "@rendering/*": ["src/rendering/*"],
+      "@ui/*": ["src/ui/*"],
+      "@types": ["src/types/index.ts"],
+      "@types/*": ["src/types/*"],
+      "@config/*": ["config/*"]
+    }
+  }
+}

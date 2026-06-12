@@ -1,0 +1,36 @@
+{
+  "id": "night-shift",
+  "name": "Night Shift",
+  "purpose": "Low light operation with reduced staff, warm interior lighting, and critical restocking.",
+  "grid": { "width": 40, "height": 40, "tileSizeM": 0.5 },
+  "robots": [
+    { "id": "robot-night-1", "start": { "x": 3, "y": 3 }, "headingRad": 0 },
+    { "id": "robot-night-2", "start": { "x": 5, "y": 3 }, "headingRad": 0 },
+    { "id": "robot-night-3", "start": { "x": 7, "y": 3 }, "headingRad": 0 }
+  ],
+  "shelves": [
+    { "id": "night-shelf-a", "position": { "x": 12, "y": 8 }, "size": { "x": 1, "y": 12 }, "capacity": 140, "stockLevel": 70, "itemId": "restock-bin" },
+    { "id": "night-shelf-b", "position": { "x": 20, "y": 8 }, "size": { "x": 1, "y": 12 }, "capacity": 140, "stockLevel": 68, "itemId": "quality-kit" }
+  ],
+  "conveyors": [
+    { "id": "conveyor-night", "start": { "x": 5, "y": 32 }, "end": { "x": 34, "y": 32 }, "speedMps": 0.24, "active": true, "crateCount": 5 }
+  ],
+  "docks": [
+    { "id": "dock-night-1", "position": { "x": 36, "y": 6 }, "status": "EMPTY" },
+    { "id": "dock-night-2", "position": { "x": 36, "y": 12 }, "status": "EMPTY" }
+  ],
+  "chargers": [
+    { "id": "charger-night-1", "position": { "x": 2, "y": 36 }, "chargeRateSocPerSecond": 0.04, "occupiedBy": null },
+    { "id": "charger-night-2", "position": { "x": 5, "y": 36 }, "chargeRateSocPerSecond": 0.04, "occupiedBy": null }
+  ],
+  "workers": [
+    { "id": "worker-night-1", "position": { "x": 16, "y": 24 }, "route": [{ "x": 16, "y": 24 }, { "x": 28, "y": 24 }], "routeIndex": 1, "state": "WALKING_TO_NEXT", "safetyBubbleM": 1.5 }
+  ],
+  "zones": [],
+  "hazards": [],
+  "tasks": [
+    { "id": "task-night-1", "priority": "CRITICAL", "pickup": { "x": 11, "y": 10 }, "dropoff": { "x": 36, "y": 6 }, "itemId": "restock-bin", "weightKg": 1.2 }
+  ],
+  "startHour": 23
+}
+

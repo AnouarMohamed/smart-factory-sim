@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Smart factory robot">
+  <rect width="64" height="64" rx="6" fill="#0A0E1A"/>
+  <rect x="13" y="24" width="38" height="20" rx="3" fill="#2A3040" stroke="#00D4FF" stroke-width="2"/>
+  <circle cx="24" cy="48" r="5" fill="#111827" stroke="#8B9BB4" stroke-width="2"/>
+  <circle cx="40" cy="48" r="5" fill="#111827" stroke="#8B9BB4" stroke-width="2"/>
+  <circle cx="24" cy="34" r="3" fill="#00D4FF"/>
+  <circle cx="40" cy="34" r="3" fill="#00FF88"/>
+  <path d="M51 31h8v4h-8z" fill="#FFB300"/>
+</svg>
+
