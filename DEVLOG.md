@@ -97,3 +97,10 @@
 **Rationale:** Reviewers should be able to run the production container with one command and understand the runtime file layout.
 **Trade-off:** Compose currently runs one static web service only. MQTT, OPC-UA, and cloud services remain in-browser simulations, not separate containers.
 **Files affected:** `docker-compose.yml`, `docs/DOCKER.md`, `README.md`, `docs/README.md`, `DEVLOG.md`
+
+## [BUILD-015] - Core CI Quality Gate
+**Date:** 2026-06-13T00:42:24+01:00
+**Decision:** Add a GitHub Actions workflow for pnpm install, lint, tests, and production build on pull requests and main pushes.
+**Rationale:** Teammates need an automated baseline before merging docs, Docker, rendering, or simulation changes.
+**Trade-off:** The workflow does not upload build artifacts yet; it focuses on fast validation.
+**Files affected:** `.github/workflows/ci.yml`, `DEVLOG.md`
