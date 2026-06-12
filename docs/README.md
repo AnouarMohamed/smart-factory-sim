@@ -11,6 +11,7 @@ This directory collects reviewer-facing documentation for the Smart Factory Sim.
 | [Architecture Deep Dive](ARCHITECTURE_DEEP_DIVE.md) | Runtime composition, tick channels, mission flow, camera ownership, and hot reload safety. |
 | [Operations Runbook](OPERATIONS_RUNBOOK.md) | Local startup, demo checklist, control expectations, and release readiness. |
 | [Troubleshooting](TROUBLESHOOTING.md) | Common local, Docker, and CI failures with first-response checks. |
+| [Team Workflow](TEAM_WORKFLOW.md) | Branch naming, stacked PRs, merge order, and review expectations. |
 | [Plan](../PLAN.md) | Original project plan and implementation scope. |
 | [Development Log](../DEVLOG.md) | Architecture decisions, trade-offs, and dated build notes. |
 | [Changelog](../CHANGELOG.md) | Release-facing summary of notable changes. |
