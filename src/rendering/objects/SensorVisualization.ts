@@ -10,13 +10,14 @@ export class SensorVisualization {
   private readonly cone: THREE.Mesh;
 
   public constructor() {
-    const geometry = new THREE.ConeGeometry(0.55, 1.6, 32, 1, true);
-    geometry.rotateX(Math.PI / 2);
-    geometry.translate(0.78, 0, 0);
+    const geometry = new THREE.ConeGeometry(0.42, 2.2, 32, 1, true);
+    geometry.rotateZ(-Math.PI / 2);
+    geometry.translate(1.15, 0, 0);
     this.cone = new THREE.Mesh(
       geometry,
       new THREE.MeshBasicMaterial({ color: '#00D4FF', transparent: true, opacity: 0.12, depthWrite: false })
     );
+    this.cone.position.y = 0.22;
     this.group.add(this.cone);
   }
 
@@ -30,4 +31,3 @@ export class SensorVisualization {
     }
   }
 }
-

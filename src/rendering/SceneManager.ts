@@ -32,6 +32,7 @@ export class SceneManager {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.shadowMap.enabled = true;
+    this.renderer.setClearColor('#0A0E1A');
     this.container.appendChild(this.renderer.domElement);
     this.scene.add(this.pathVisualization.group);
     window.addEventListener('resize', (): void => this.resize());
@@ -65,6 +66,7 @@ export class SceneManager {
       this.scene.add(mesh.group);
     }
 
+    this.addOperationalMarkers(scenario);
     this.lighting.mount(this.scene, width, height);
     this.dayNight.apply(this.scene, this.lighting.sun, scenario.startHour);
     this.cameraController.update(null);
@@ -117,5 +119,46 @@ export class SceneManager {
     const geometry = new THREE.BufferGeometry().setFromPoints(points);
     this.scene.add(new THREE.LineSegments(geometry, material));
   }
-}
 
+  private addOperationalMarkers(scenario: ScenarioDefinition): void {
+    const chargerMaterial = new THREE.MeshStandardMaterial({
+      color: '#00FF88',
+      emissive: '#00351f',
+      roughness: 0.5
+    });
+    const dockMaterial = new THREE.MeshStandardMaterial({
+      color: '#00D4FF',
+      emissive: '#003544',
+      roughness: 0.52
+    });
+    const obstacleMaterial = new THREE.MeshStandardMaterial({
+      color: '#FF3B30',
+      emissive: '#3b0905',
+      roughness: 0.58
+    });
+
+    for (const charger of scenario.chargers) {
+      const pad = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.045, 0.9), chargerMaterial);
+      pad.position.set(charger.position.x, 0.025, charger.position.y);
+      pad.receiveShadow = true;
+      this.scene.add(pad);
+    }
+
+    for (const dock of scenario.docks) {
+      const pad = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.055, 1.1), dockMaterial);
+      pad.position.set(dock.position.x, 0.03, dock.position.y);
+      pad.receiveShadow = true;
+      this.scene.add(pad);
+    }
+
+    for (const hazard of scenario.hazards) {
+      for (const cell of hazard.zone.cells) {
+        const barrier = new THREE.Mesh(new THREE.BoxGeometry(0.86, 0.42, 0.86), obstacleMaterial);
+        barrier.position.set(cell.x, 0.21, cell.y);
+        barrier.castShadow = true;
+        barrier.receiveShadow = true;
+        this.scene.add(barrier);
+      }
+    }
+  }
+}

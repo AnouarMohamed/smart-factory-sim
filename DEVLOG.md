@@ -41,3 +41,10 @@
 **Rationale:** The repository keeps `public/index.html` as required, while Vite dev mode resolves root-relative HTML module scripts inside the configured `public` root. The alias lets `/src/main.ts` resolve correctly without adding an extra root `index.html`.
 **Trade-off:** This is a Vite-specific serving detail. TypeScript source imports still use the documented domain aliases.
 **Files affected:** `vite.config.ts`, `public/index.html`
+
+## [BUILD-007] - Simulation-First UX Repair
+**Date:** 2026-06-12T16:37:14+01:00
+**Decision:** Replace the two-rail dashboard with a full-screen simulation HUD, rescale and re-axis the robot mesh, switch the default camera to follow mode, and add explicit visible obstacle, charger, and dock markers.
+**Rationale:** The first implementation technically rendered, but the robot was too small, obstacles were not legible, and the UI overwhelmed the simulation. The first screen must communicate a live logistics simulation immediately.
+**Trade-off:** Fewer panels are visible by default. Deep telemetry still exists in the codebase, but the first-load surface now prioritizes operational clarity.
+**Files affected:** `src/ui/UIManager.ts`, `src/rendering/CameraController.ts`, `src/rendering/SceneManager.ts`, `src/rendering/objects/RobotMesh.ts`, `src/rendering/objects/WheelMesh.ts`, `src/rendering/objects/ForkliftArmMesh.ts`, `src/rendering/objects/SensorVisualization.ts`, `config/scenarios/small-warehouse.json`

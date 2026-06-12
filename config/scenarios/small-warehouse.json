@@ -28,13 +28,20 @@
     { "id": "worker-2", "position": { "x": 12, "y": 12 }, "route": [{ "x": 12, "y": 12 }, { "x": 16, "y": 12 }, { "x": 16, "y": 16 }], "routeIndex": 1, "state": "WALKING_TO_NEXT", "safetyBubbleM": 1.5 }
   ],
   "zones": [
-    { "id": "priority-main", "type": "PRIORITY_CORRIDOR", "label": "Main Corridor", "cells": [{ "x": 2, "y": 11 }, { "x": 3, "y": 11 }, { "x": 4, "y": 11 }, { "x": 5, "y": 11 }, { "x": 6, "y": 11 }, { "x": 7, "y": 11 }, { "x": 8, "y": 11 }, { "x": 9, "y": 11 }, { "x": 10, "y": 11 }, { "x": 11, "y": 11 }, { "x": 12, "y": 11 }, { "x": 13, "y": 11 }, { "x": 14, "y": 11 }, { "x": 15, "y": 11 }, { "x": 16, "y": 11 }], "costMultiplier": 0.8 }
+    { "id": "priority-main", "type": "PRIORITY_CORRIDOR", "label": "Main Corridor", "cells": [{ "x": 2, "y": 11 }, { "x": 3, "y": 11 }, { "x": 4, "y": 11 }, { "x": 5, "y": 11 }, { "x": 6, "y": 11 }, { "x": 7, "y": 11 }, { "x": 8, "y": 11 }, { "x": 9, "y": 11 }, { "x": 10, "y": 11 }, { "x": 11, "y": 11 }, { "x": 12, "y": 11 }, { "x": 13, "y": 11 }, { "x": 14, "y": 11 }, { "x": 15, "y": 11 }, { "x": 16, "y": 11 }], "costMultiplier": 0.8 },
+    { "id": "blocked-pallet-row", "type": "HAZARD", "label": "Blocked Pallet Row", "cells": [{ "x": 6, "y": 5 }, { "x": 7, "y": 5 }, { "x": 8, "y": 5 }], "costMultiplier": 999 }
   ],
-  "hazards": [],
+  "hazards": [
+    {
+      "id": "hazard-blocked-pallet-row",
+      "type": "VIRTUAL_OBSTACLE",
+      "zone": { "id": "blocked-pallet-row", "type": "HAZARD", "label": "Blocked Pallet Row", "cells": [{ "x": 6, "y": 5 }, { "x": 7, "y": 5 }, { "x": 8, "y": 5 }], "costMultiplier": 999 },
+      "createdAtMs": 0
+    }
+  ],
   "tasks": [
     { "id": "task-001", "priority": "NORMAL", "pickup": { "x": 5, "y": 6 }, "dropoff": { "x": 18, "y": 3 }, "itemId": "motor-kit", "weightKg": 1.4 },
     { "id": "task-002", "priority": "HIGH", "pickup": { "x": 9, "y": 6 }, "dropoff": { "x": 18, "y": 8 }, "itemId": "sensor-pack", "weightKg": 0.8 }
   ],
   "startHour": 10
 }
-

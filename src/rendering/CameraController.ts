@@ -8,7 +8,7 @@ import type * as THREE from 'three';
 export type CameraMode = 'orbit' | 'follow' | 'top-down' | 'free';
 
 export class CameraController {
-  private mode: CameraMode = 'orbit';
+  private mode: CameraMode = 'follow';
 
   public constructor(private readonly camera: THREE.PerspectiveCamera) {}
 
@@ -26,15 +26,22 @@ export class CameraController {
     }
 
     if (this.mode === 'follow' && followed) {
-      this.camera.position.set(followed.pose.x - 2.4, 2.2, followed.pose.y + 2.4);
-      this.camera.lookAt(followed.pose.x, 0.2, followed.pose.y);
+      const compact = this.camera.aspect < 0.75;
+      const followDistance = compact ? 7.2 : 4.8;
+      const height = compact ? 5.8 : 4.2;
+      const sideOffset = compact ? -2.1 : -1.4;
+      const forwardOffset = compact ? 4.8 : 3.2;
+      const lookAhead = compact ? 3.0 : 1.6;
+      const behindX = followed.pose.x - Math.cos(followed.pose.theta) * followDistance;
+      const behindZ = followed.pose.y - Math.sin(followed.pose.theta) * followDistance;
+      this.camera.position.set(behindX + sideOffset, height, behindZ + forwardOffset);
+      this.camera.lookAt(followed.pose.x + lookAhead, 0.35, followed.pose.y);
       return;
     }
 
     if (this.mode === 'orbit') {
-      this.camera.position.set(10, 8, 14);
-      this.camera.lookAt(10, 0, 10);
+      this.camera.position.set(8, 7, 11);
+      this.camera.lookAt(8, 0, 8);
     }
   }
 }
-

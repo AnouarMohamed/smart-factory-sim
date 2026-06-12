@@ -1,26 +1,11 @@
 /**
- * DOM dashboard manager for industrial telemetry panels and controls.
+ * DOM dashboard manager for a simulation-first control surface.
  */
 
 import type { ProfilerSnapshot } from '@core/PerformanceProfiler';
 import type { EdgeSummary } from '@iot/EdgeNode';
 import type { OPCUANode } from '@iot/OPCUASimulator';
 import type { Alert, FleetMetrics, FleetTask, MQTTMessage, RobotDigitalTwin, ShelfEntity } from '@types';
-import { ControlPanel } from './controls/ControlPanel';
-import { AlertPanel } from './panels/AlertPanel';
-import { CloudPanel } from './panels/CloudPanel';
-import { EdgeNodePanel } from './panels/EdgeNodePanel';
-import { FleetPanel } from './panels/FleetPanel';
-import { InventoryPanel } from './panels/InventoryPanel';
-import { MaintenancePanel } from './panels/MaintenancePanel';
-import { MQTTPanel } from './panels/MQTTPanel';
-import { OPCUAPanel } from './panels/OPCUAPanel';
-import { PIDPanel } from './panels/PIDPanel';
-import { ProfilerPanel } from './panels/ProfilerPanel';
-import { ReplayPanel } from './panels/ReplayPanel';
-import { SensorPanel } from './panels/SensorPanel';
-import { StateMachinePanel } from './panels/StateMachinePanel';
-import { TelemetryPanel } from './panels/TelemetryPanel';
 
 export interface DashboardSnapshot {
   readonly robots: readonly RobotDigitalTwin[];
@@ -37,63 +22,119 @@ export interface DashboardSnapshot {
 }
 
 export class UIManager {
-  private readonly telemetry = new TelemetryPanel();
-  private readonly stateMachine = new StateMachinePanel();
-  private readonly sensors = new SensorPanel();
-  private readonly mqtt = new MQTTPanel();
-  private readonly pid = new PIDPanel();
-  private readonly fleet = new FleetPanel();
-  private readonly inventory = new InventoryPanel();
-  private readonly alerts = new AlertPanel();
-  private readonly cloud = new CloudPanel();
-  private readonly opcua = new OPCUAPanel();
-  private readonly edge = new EdgeNodePanel();
-  private readonly maintenance = new MaintenancePanel();
-  private readonly profiler = new ProfilerPanel();
-  private readonly replay = new ReplayPanel();
-  private readonly controls = new ControlPanel();
   private mounted = false;
 
   public constructor(private readonly root: HTMLElement) {
     this.installStyles();
   }
 
-  /** Render the full dashboard snapshot. */
+  /** Render the simulation HUD without replacing the Three.js canvas. */
   public render(snapshot: DashboardSnapshot): void {
     this.ensureMounted();
     const selected = snapshot.robots[0] ?? null;
-    const leftRail = this.root.querySelector<HTMLElement>('[data-region="left-rail"]');
-    const rightRail = this.root.querySelector<HTMLElement>('[data-region="right-rail"]');
-    if (!leftRail || !rightRail) {
-      throw new Error('Dashboard rails are not mounted.');
-    }
+    const topBar = this.region('top-bar');
+    const telemetryStrip = this.region('telemetry-strip');
+    const inspector = this.region('inspector');
+    const feed = this.region('feed');
 
-    leftRail.innerHTML = `<div class="brand"><b>SMART FACTORY</b><span>DIGITAL TWIN</span></div>
-        ${this.telemetry.render(selected)}
-        ${this.stateMachine.render(selected)}
-        ${this.sensors.render(selected)}
-        ${this.pid.render({ error: selected?.sensors.irArray.lineError ?? 0, p: 0, i: 0, d: 0, output: 0 })}
-        ${this.controls.render()}`;
-
-    rightRail.innerHTML = `${this.fleet.render(snapshot.robots, snapshot.tasks, snapshot.metrics)}
-        ${this.inventory.render(snapshot.shelves)}
-        ${this.alerts.render(snapshot.alerts)}
-        ${this.mqtt.render(snapshot.mqttMessages)}
-        <div class="mini-grid">
-          ${this.cloud.render(snapshot.cloudCount)}
-          ${this.edge.render(snapshot.edgeSummaries)}
-          ${this.replay.render(snapshot.replayFrames)}
-        </div>
-        ${this.opcua.render(snapshot.opcNodes)}
-        ${this.maintenance.render(selected)}
-        ${this.profiler.render(snapshot.profiler)}`;
+    topBar.innerHTML = this.renderTopBar(snapshot, selected);
+    telemetryStrip.innerHTML = this.renderTelemetryStrip(snapshot, selected);
+    inspector.innerHTML = this.renderInspector(snapshot, selected);
+    feed.innerHTML = this.renderFeed(snapshot.mqttMessages);
   }
 
-  /** Return the current scene container after render. */
+  /** Return the stable scene container. */
   public sceneRoot(): HTMLElement {
     const element = this.root.querySelector<HTMLElement>('#scene-root');
     if (!element) {
       throw new Error('Scene root is not mounted.');
+    }
+    return element;
+  }
+
+  private renderTopBar(snapshot: DashboardSnapshot, selected: RobotDigitalTwin | null): string {
+    const state = selected?.state.kind ?? 'OFFLINE';
+    const active = snapshot.metrics?.activeRobots ?? snapshot.robots.length;
+    return `<div class="system-title">
+        <strong>Smart Factory Sim</strong>
+        <span>Small Warehouse</span>
+      </div>
+      <div class="top-metrics">
+        ${this.metric('Robot', selected?.id ?? 'none')}
+        ${this.metric('State', state)}
+        ${this.metric('Active', `${active}/${snapshot.robots.length}`)}
+        ${this.metric('FPS', snapshot.profiler.fps.toFixed(0))}
+      </div>`;
+  }
+
+  private renderTelemetryStrip(snapshot: DashboardSnapshot, selected: RobotDigitalTwin | null): string {
+    const speed = selected ? `${selected.velocity.linear.toFixed(2)} m/s` : '0.00 m/s';
+    const battery = selected ? `${selected.battery.soc.toFixed(1)}%` : '0.0%';
+    const ultrasonic = selected ? `${selected.sensors.ultrasonic.distanceM.toFixed(2)} m` : '0.00 m';
+    const lineError = selected ? selected.sensors.irArray.lineError.toFixed(2) : '0.00';
+    const queued = snapshot.metrics?.queuedTasks ?? snapshot.tasks.filter((task) => task.status === 'QUEUED').length;
+    const mqttRate = `${snapshot.profiler.mqttMessagesPerSecond.toFixed(1)}/s`;
+
+    return `${this.metric('Speed', speed)}
+      ${this.metric('Battery', battery)}
+      ${this.metric('Ultrasonic', ultrasonic)}
+      ${this.metric('Line error', lineError)}
+      ${this.metric('Queued', String(queued))}
+      ${this.metric('MQTT', mqttRate)}`;
+  }
+
+  private renderInspector(snapshot: DashboardSnapshot, selected: RobotDigitalTwin | null): string {
+    const alerts = selected?.alerts.slice(-3) ?? [];
+    const currentTask = selected?.currentTask;
+    const stockAverage =
+      snapshot.shelves.length === 0
+        ? 0
+        : snapshot.shelves.reduce((sum, shelf) => sum + shelf.stockLevel / shelf.capacity, 0) /
+          snapshot.shelves.length;
+
+    return `<section class="hud-panel">
+      <header><span>Mission</span><strong>${currentTask?.id ?? 'routing'}</strong></header>
+      <div class="rows">
+        ${this.row('Pickup', currentTask ? `${currentTask.pickup.x}, ${currentTask.pickup.y}` : 'assigned route')}
+        ${this.row('Dropoff', currentTask ? `${currentTask.dropoff.x}, ${currentTask.dropoff.y}` : 'dock pending')}
+        ${this.row('Path', `${selected?.path.length ?? 0} cells`)}
+        ${this.row('Inventory', `${(stockAverage * 100).toFixed(0)}% avg`)}
+        ${this.row('Cloud', `${snapshot.cloudCount} msgs`)}
+        ${this.row('Replay', `${snapshot.replayFrames} frames`)}
+      </div>
+    </section>
+    <section class="hud-panel">
+      <header><span>Incidents</span><strong>${alerts.length}</strong></header>
+      <div class="incident-list">
+        ${
+          alerts.length === 0
+            ? '<p>Nominal operation</p>'
+            : alerts.map((alert) => `<p class="${alert.severity.toLowerCase()}">${alert.message}</p>`).join('')
+        }
+      </div>
+    </section>`;
+  }
+
+  private renderFeed(messages: readonly MQTTMessage[]): string {
+    return messages
+      .slice(-5)
+      .reverse()
+      .map((message) => `<span>${message.qos}</span><code>${message.topic}</code>`)
+      .join('');
+  }
+
+  private metric(label: string, value: string): string {
+    return `<div class="hud-metric"><span>${label}</span><strong>${value}</strong></div>`;
+  }
+
+  private row(label: string, value: string): string {
+    return `<div><span>${label}</span><strong>${value}</strong></div>`;
+  }
+
+  private region(name: string): HTMLElement {
+    const element = this.root.querySelector<HTMLElement>(`[data-region="${name}"]`);
+    if (!element) {
+      throw new Error(`Dashboard region is not mounted: ${name}`);
     }
     return element;
   }
@@ -104,9 +145,13 @@ export class UIManager {
     }
 
     this.root.innerHTML = `<div class="app-shell">
-      <aside class="left-rail" data-region="left-rail"></aside>
-      <main class="viewport"><div id="scene-root"></div></main>
-      <aside class="right-rail" data-region="right-rail"></aside>
+      <main class="viewport">
+        <div id="scene-root"></div>
+        <div class="top-bar" data-region="top-bar"></div>
+        <div class="inspector" data-region="inspector"></div>
+        <div class="telemetry-strip" data-region="telemetry-strip"></div>
+        <div class="mqtt-strip" data-region="feed"></div>
+      </main>
     </div>`;
     this.mounted = true;
   }
@@ -116,74 +161,168 @@ export class UIManager {
     style.textContent = `
       :root {
         color-scheme: dark;
-        --bg: #0A0E1A;
-        --panel: rgba(10, 14, 26, 0.85);
-        --panel-2: #111827;
-        --border: #1E2D40;
-        --grid: #1A2035;
-        --cyan: #00D4FF;
-        --green: #00FF88;
-        --amber: #FFB300;
-        --red: #FF3B30;
-        --text: #E6EDF7;
-        --muted: #8B9BB4;
+        --bg: oklch(16% 0.018 245);
+        --surface: oklch(20% 0.02 245 / 0.94);
+        --surface-2: oklch(24% 0.018 245 / 0.94);
+        --border: oklch(38% 0.035 245);
+        --text: oklch(93% 0.012 245);
+        --muted: oklch(70% 0.03 245);
+        --cyan: oklch(78% 0.16 220);
+        --green: oklch(82% 0.2 155);
+        --amber: oklch(82% 0.16 80);
+        --red: oklch(66% 0.22 30);
       }
       * { box-sizing: border-box; }
-      body { margin: 0; background: var(--bg); color: var(--text); font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; overflow: hidden; }
-      code, strong, time { font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace; }
-      .app-shell { width: 100vw; height: 100vh; display: grid; grid-template-columns: 340px minmax(0, 1fr) 390px; background: var(--bg); }
-      .viewport { min-width: 0; min-height: 0; position: relative; border-inline: 1px solid var(--border); }
-      #scene-root { position: absolute; inset: 0; }
-      .left-rail, .right-rail { min-height: 0; overflow: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; background: linear-gradient(180deg, #0A0E1A 0%, #0D1424 100%); }
-      .brand { height: 48px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border); padding: 0 12px; background: #0D1424; }
-      .brand b { font-size: 13px; letter-spacing: 0; }
-      .brand span { font-size: 10px; color: var(--cyan); font-family: "JetBrains Mono", monospace; }
-      .panel { border: 1px solid var(--border); background: var(--panel); backdrop-filter: blur(12px); border-radius: 4px; padding: 10px; }
-      .panel h2 { margin: 0 0 9px; font-size: 12px; font-weight: 650; color: var(--text); }
-      .panel.tall { min-height: 220px; }
-      .panel.mini { min-height: 74px; display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; align-items: end; }
-      .panel.mini h2 { grid-column: 1 / -1; }
-      .panel.mini strong { font-size: 21px; color: var(--cyan); }
-      .panel.mini span { color: var(--muted); font-size: 11px; }
-      .metric-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-      .metric-grid.compact { gap: 6px; }
-      .metric-grid div { min-height: 48px; border: 1px solid var(--grid); padding: 7px; background: #0D1424; }
-      .metric-grid span, .stock-list span, .scope span { display: block; color: var(--muted); font-size: 10px; }
-      .metric-grid strong { display: block; margin-top: 4px; font-size: 14px; color: var(--text); }
-      .state-list { display: flex; flex-wrap: wrap; gap: 5px; }
-      .state-list span { border: 1px solid var(--grid); color: var(--muted); padding: 4px 6px; font-size: 10px; font-family: "JetBrains Mono", monospace; }
-      .state-list .active { color: var(--bg); background: var(--cyan); border-color: var(--cyan); }
-      .sensor-bars { height: 54px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; align-items: end; padding: 6px; border: 1px solid var(--grid); background: #0D1424; margin-bottom: 8px; }
-      .sensor-bars i { display: block; background: var(--cyan); min-height: 8px; }
-      .feed, .node-list, .alert-list, .stock-list { display: grid; gap: 6px; }
-      .feed div, .node-list div, .stock-list div, .alert-list div { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 7px; align-items: center; min-height: 26px; border: 1px solid var(--grid); background: #0D1424; padding: 5px; font-size: 11px; }
-      .feed code, .node-list code { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--cyan); }
-      .feed span { color: var(--amber); font-family: "JetBrains Mono", monospace; }
-      .feed time { color: var(--muted); font-size: 10px; }
-      .scope { display: grid; gap: 7px; }
-      .scope div { display: grid; grid-template-columns: 48px 1fr 64px; gap: 6px; align-items: center; }
-      .scope b { height: 8px; min-width: 2px; display: block; background: var(--cyan); }
-      .scope b.green { background: var(--green); }
-      .scope b.amber { background: var(--amber); }
-      .scope b.red { background: var(--red); }
-      meter { width: 100%; height: 8px; }
-      .alert-list .critical { color: var(--red); }
-      .alert-list .warning { color: var(--amber); }
-      .empty { margin: 0; color: var(--muted); font-size: 12px; }
-      .controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-      .controls h2 { grid-column: 1 / -1; }
-      button { height: 32px; border-radius: 4px; border: 1px solid var(--border); background: #0D1424; color: var(--text); font: inherit; font-size: 12px; cursor: pointer; }
-      button:hover { border-color: var(--cyan); }
-      button.danger { color: var(--red); border-color: color-mix(in srgb, var(--red), var(--border)); }
-      .mini-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-      @media (max-width: 1100px) {
-        .app-shell { grid-template-columns: 300px minmax(0, 1fr); }
-        .right-rail { display: none; }
+      body {
+        margin: 0;
+        overflow: hidden;
+        background: var(--bg);
+        color: var(--text);
+        font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       }
-      @media (max-width: 760px) {
-        .app-shell { grid-template-columns: 1fr; grid-template-rows: 48vh 52vh; }
-        .left-rail { grid-row: 2; }
-        .viewport { grid-row: 1; border-inline: 0; border-bottom: 1px solid var(--border); }
+      code, strong { font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace; }
+      .app-shell, .viewport, #scene-root { width: 100vw; height: 100vh; }
+      .viewport { position: relative; min-width: 0; min-height: 0; }
+      #scene-root { position: absolute; inset: 0; }
+      .top-bar, .telemetry-strip, .inspector, .mqtt-strip {
+        position: absolute;
+        z-index: 2;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        box-shadow: 0 18px 50px oklch(7% 0.02 245 / 0.35);
+      }
+      .top-bar {
+        left: 16px;
+        right: 16px;
+        top: 14px;
+        min-height: 56px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 10px 12px;
+        border-radius: 4px;
+      }
+      .system-title { display: grid; gap: 2px; min-width: 190px; }
+      .system-title strong { font-size: 15px; letter-spacing: 0; }
+      .system-title span { color: var(--muted); font-size: 12px; }
+      .top-metrics, .telemetry-strip {
+        display: grid;
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(116px, 1fr);
+        gap: 1px;
+      }
+      .hud-metric {
+        min-width: 0;
+        min-height: 42px;
+        padding: 7px 10px;
+        background: var(--surface-2);
+      }
+      .hud-metric span, .rows span, .hud-panel header span {
+        display: block;
+        color: var(--muted);
+        font-size: 10px;
+        line-height: 1.2;
+      }
+      .hud-metric strong {
+        display: block;
+        margin-top: 4px;
+        color: var(--text);
+        font-size: 14px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .telemetry-strip {
+        left: 16px;
+        right: 332px;
+        bottom: 16px;
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      .inspector {
+        right: 16px;
+        bottom: 16px;
+        width: 300px;
+        display: grid;
+        gap: 10px;
+        border: 0;
+        background: transparent;
+        box-shadow: none;
+      }
+      .hud-panel {
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        background: var(--surface);
+        padding: 10px;
+      }
+      .hud-panel header {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        margin-bottom: 8px;
+      }
+      .hud-panel header strong { color: var(--cyan); font-size: 13px; }
+      .rows { display: grid; gap: 6px; }
+      .rows div {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 6px 0;
+        border-top: 1px solid oklch(35% 0.025 245 / 0.55);
+      }
+      .rows strong { font-size: 12px; color: var(--text); }
+      .incident-list { display: grid; gap: 6px; }
+      .incident-list p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.35;
+      }
+      .incident-list .warning { color: var(--amber); }
+      .incident-list .critical { color: var(--red); }
+      .mqtt-strip {
+        left: 16px;
+        bottom: 92px;
+        max-width: min(720px, calc(100vw - 360px));
+        min-height: 32px;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 4px 8px;
+        align-items: center;
+        padding: 8px 10px;
+        border-radius: 4px;
+      }
+      .mqtt-strip span {
+        color: var(--amber);
+        font: 11px "JetBrains Mono", monospace;
+      }
+      .mqtt-strip code {
+        color: var(--cyan);
+        font-size: 11px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      @media (max-width: 880px) {
+        .top-bar {
+          left: 10px;
+          right: 10px;
+          top: 10px;
+          display: grid;
+        }
+        .top-metrics {
+          grid-auto-flow: initial;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .telemetry-strip {
+          left: 10px;
+          right: 10px;
+          bottom: 10px;
+          grid-auto-flow: initial;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .inspector, .mqtt-strip { display: none; }
       }
     `;
     document.head.appendChild(style);
