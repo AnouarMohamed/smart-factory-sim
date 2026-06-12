@@ -83,3 +83,10 @@
 **Rationale:** The project needs visual proof of the factory overview, robot POVs, route controls, pause state, mobile layout, and operator workflow without requiring a local run.
 **Trade-off:** Binary media increases repository size, but the captured assets make the simulation state and controls reviewable directly from GitHub.
 **Files affected:** `README.md`, `DEVLOG.md`, `docs/media/`
+
+## [BUILD-013] - Production Docker Runtime
+**Date:** 2026-06-13T00:40:59+01:00
+**Decision:** Add a multi-stage Dockerfile that builds the Vite app with pnpm and serves the production `dist/` folder from Nginx on port 8080.
+**Rationale:** Teammates need a reproducible container runtime for demos, smoke tests, and deployment previews.
+**Trade-off:** The runtime is static-only. It does not include a Node server because the app is a browser-native simulation.
+**Files affected:** `Dockerfile`, `.dockerignore`, `deploy/nginx/default.conf`, `DEVLOG.md`
