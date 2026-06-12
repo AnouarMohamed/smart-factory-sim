@@ -8,6 +8,22 @@ A cinematic industrial control room in the browser, where autonomous logistics r
 ![License](https://img.shields.io/badge/license-MIT-00FF88)
 ![Coverage](https://img.shields.io/badge/tests-core%20covered-FFB300)
 
+## Demo Media
+
+Video walkthrough: [smart-factory-demo.webm](docs/media/smart-factory-demo.webm)
+
+| Factory overview | Robot 1 POV |
+|---|---|
+| ![Factory overview with stations, route controls, telemetry, and two logistics cars](docs/media/factory-overview.png) | ![Robot 1 point of view following the selected logistics car](docs/media/robot-1-pov.png) |
+
+| Robot 2 POV | Route reassignment |
+|---|---|
+| ![Robot 2 point of view following the second logistics car](docs/media/robot-2-pov.png) | ![Factory overview after assigning robot 1 to the A-C route](docs/media/route-controls.png) |
+
+| Paused controls | Mobile overview |
+|---|---|
+| ![Factory overview with paused simulation clock and active route controls](docs/media/paused-controls.png) | ![Mobile factory overview with compact HUD controls](docs/media/mobile-overview.png) |
+
 ## Architecture
 
 ```text

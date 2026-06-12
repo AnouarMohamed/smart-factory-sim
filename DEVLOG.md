@@ -76,3 +76,10 @@
 **Rationale:** Replacing button DOM every telemetry refresh can detach a button while a click is in progress. Hot reloads can also leave old app loops rendering stale HUD state. Both behaviors make controls feel broken.
 **Trade-off:** `UIManager` now has more explicit DOM synchronization code instead of simple full-panel `innerHTML` replacement, but interactive controls are stable and testable.
 **Files affected:** `ARCHITECTURE.md`, `DEVLOG.md`, `src/main.ts`, `src/app.ts`, `src/rendering/SceneManager.ts`, `src/ui/UIManager.ts`
+
+## [BUILD-012] - README Demo Media Capture
+**Date:** 2026-06-13T00:35:21+01:00
+**Decision:** Add generated screenshots and a short WebM control walkthrough to `docs/media`, then surface every asset from the README.
+**Rationale:** The project needs visual proof of the factory overview, robot POVs, route controls, pause state, mobile layout, and operator workflow without requiring a local run.
+**Trade-off:** Binary media increases repository size, but the captured assets make the simulation state and controls reviewable directly from GitHub.
+**Files affected:** `README.md`, `DEVLOG.md`, `docs/media/`
