@@ -8,6 +8,7 @@ This directory collects reviewer-facing documentation for the Smart Factory Sim.
 |---|---|
 | [Project README](../README.md) | Product summary, demo media, quick start, controls, and repository map. |
 | [Architecture](../ARCHITECTURE.md) | Core data flow, module ownership, and simulation boundaries. |
+| [Architecture Deep Dive](ARCHITECTURE_DEEP_DIVE.md) | Runtime composition, tick channels, mission flow, camera ownership, and hot reload safety. |
 | [Plan](../PLAN.md) | Original project plan and implementation scope. |
 | [Development Log](../DEVLOG.md) | Architecture decisions, trade-offs, and dated build notes. |
 | [Changelog](../CHANGELOG.md) | Release-facing summary of notable changes. |
