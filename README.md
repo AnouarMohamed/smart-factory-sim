@@ -8,9 +8,6 @@ A cinematic industrial control room in the browser, where autonomous logistics r
 ![License](https://img.shields.io/badge/license-MIT-00FF88)
 ![Coverage](https://img.shields.io/badge/tests-core%20covered-FFB300)
 
-## Demo Media
-
-Video walkthrough: [smart-factory-demo.webm](docs/media/smart-factory-demo.webm)
 
 | Factory overview | Robot 1 POV |
 |---|---|
