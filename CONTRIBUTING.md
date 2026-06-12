@@ -8,6 +8,7 @@
 - Add or update tests for changed behavior.
 - Update `DEVLOG.md` for significant architecture decisions.
 - Update docs when behavior, topics, scenarios, or public APIs change.
+- Keep PRs focused and reviewable. Split Docker, CI, docs, and runtime behavior into separate branches when possible.
 
 ## Commands
 
@@ -30,7 +31,14 @@ pnpm build
 
 - Build passes.
 - Tests pass.
+- Lint passes.
+- Docker build passes when Docker files changed.
 - Relevant docs are updated.
 - `DEVLOG.md` includes architectural decisions or deviations.
 - The first-load scenario still renders and runs.
+- Screenshots or demo media are updated when UI behavior changes.
+- The PR body lists validation commands and any known follow-up work.
 
+## Team Workflow
+
+Use [docs/TEAM_WORKFLOW.md](docs/TEAM_WORKFLOW.md) for stacked PRs, merge order, branch naming, and review expectations.
