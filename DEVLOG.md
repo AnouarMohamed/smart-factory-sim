@@ -118,3 +118,10 @@
 **Rationale:** The team needs consistent review prompts, ownership hints, and dependency maintenance once CI and Docker workflows exist.
 **Trade-off:** CODEOWNERS currently points to the repository owner for all areas until a larger team ownership map is available.
 **Files affected:** `.github/PULL_REQUEST_TEMPLATE.md`, `.github/CODEOWNERS`, `.github/dependabot.yml`, `DEVLOG.md`
+
+## [BUILD-018] - CI Pipeline Documentation
+**Date:** 2026-06-13T00:44:16+01:00
+**Decision:** Document GitHub Actions workflows, local parity commands, Docker checks, and the 10-PR merge stack.
+**Rationale:** Teammates need a clear merge path and a single pipeline reference after docs, Docker, CI, and repository workflow files are split across multiple PRs.
+**Trade-off:** The pipeline docs describe future extensions that are not implemented yet, such as GHCR publishing and Playwright smoke tests.
+**Files affected:** `docs/CI_PIPELINE.md`, `README.md`, `docs/README.md`, `CHANGELOG.md`, `DEVLOG.md`
