@@ -31,7 +31,7 @@ WorkerAgent   FleetManager -> RobotController
 5. `TelemetryStore`, `MessageBus`, `CloudConnector`, and `ReplayRecorder` observe MQTT messages.
 6. Render ticks read `DigitalTwin` snapshots and update `SceneManager` meshes.
 7. `UIManager` refreshes dashboard panels from the same digital twin and broker-derived feeds.
-8. Operator commands from `UIManager` update route assignments, the active camera mode, the selected robot POV, or the `SimulationClock` time scale.
+8. Operator commands from `UIManager` update route assignments, the active camera mode, the selected robot POV, or the `SimulationClock` time scale. Route commands do not change the camera.
 
 ## Factory Mission Model
 
@@ -41,7 +41,7 @@ The default factory scene is an operator-configurable two-car logistics loop:
 |---|---|---|
 | Route selection | `UIManager` -> `SmartFactoryApp` | The operator assigns a car to A-B, A-C, B-D, or C-D. |
 | Path planning | `AStarPlanner` + `PathSmoother` | Pickup, dropoff, and charger segments are generated from the active navigation grid. |
-| Mission execution | `RobotController.assignMission()` | The car advances through pickup, loading, transport, unloading, charger travel, and charging phases. |
+| Mission execution | `RobotController.assignMission()` | The car advances continuously through pickup, loading, transport, unloading, charger travel, and charging phases. |
 | Visual state | `SceneManager` + `RobotMesh` | Per-car paths, cargo presence, forklift arm motion, steering wheels, station labels, chargers, docks, and crate stacks are rendered. |
 | POV control | `CameraController` | `Factory` shows the full facility; robot buttons follow the selected car. |
 

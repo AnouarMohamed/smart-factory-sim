@@ -53,7 +53,7 @@
 **Date:** 2026-06-12T17:00:54+01:00
 **Decision:** Add a recognizable full factory floor with perimeter walls, overhead beams, stations A/B/C/D, merchandise crate stacks, route controls per car, POV switching, per-car path colors, and a visible mission cycle: pickup, load, transport, unload, charger, charge.
 **Rationale:** A simulation user must immediately understand the factory layout and control both cars. The visual model now shows the facility, the station names, merchandise movement, and operator-configurable routes.
-**Trade-off:** Mission station arrival uses a deterministic timeout fallback so demos remain readable even when the physics follower is still being improved.
+**Trade-off:** This build introduced a deterministic timeout fallback for readability; BUILD-010 removes it because it made long routes visibly skip.
 **Files affected:** `src/app.ts`, `src/ui/UIManager.ts`, `src/robot/RobotController.ts`, `src/rendering/SceneManager.ts`, `src/rendering/objects/RobotMesh.ts`, `src/rendering/objects/PathVisualization.ts`, `config/scenarios/small-warehouse.json`
 
 ## [BUILD-009] - Factory Overview Polish and Operator Documentation
@@ -62,3 +62,10 @@
 **Rationale:** The first-load view should read as an entire factory before the operator chooses a car POV. Floor labels avoid blocking cars, and steering wheels make turns more legible.
 **Trade-off:** The factory labels are procedural canvas textures instead of reusable asset files, keeping the scene self-contained while limiting typographic customization.
 **Files affected:** `README.md`, `ARCHITECTURE.md`, `DEVLOG.md`, `src/app.ts`, `src/ui/UIManager.ts`, `src/rendering/CameraController.ts`, `src/rendering/SceneManager.ts`, `src/rendering/objects/RobotMesh.ts`, `src/rendering/objects/WheelMesh.ts`
+
+## [BUILD-010] - Stable Operator Controls
+**Date:** 2026-06-12T22:44:35+01:00
+**Decision:** Remove mission timer snapping, keep route buttons independent from camera POV, and render command results immediately so controls respond even while paused.
+**Rationale:** Operators need explicit control. A route assignment should not switch the view, and cars should never jump to stations because a demo timer expired.
+**Trade-off:** Long factory routes now take real simulated travel time. This is slower than the previous demo shortcut but makes the simulation believable and debuggable.
+**Files affected:** `README.md`, `ARCHITECTURE.md`, `DEVLOG.md`, `src/app.ts`, `src/robot/RobotController.ts`, `src/ui/UIManager.ts`, `tests/robot/RobotController.test.ts`

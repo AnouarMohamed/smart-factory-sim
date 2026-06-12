@@ -63,10 +63,10 @@ Open the Vite URL printed by `pnpm dev`.
 |---|---|
 | `Factory` | Returns to the full factory overview camera. |
 | `robot-1`, `robot-2` | Switches to the selected car POV and follows that vehicle. |
-| `A-B`, `A-C`, `B-D`, `C-D` | Reassigns a car to a pickup and dropoff route through stations A, B, C, and D. |
+| `A-B`, `A-C`, `B-D`, `C-D` | Reassigns a car route through stations A, B, C, and D without changing the current camera POV. |
 | `Pause`, `0.5x`, `1x`, `2x` | Changes the simulation clock speed without resetting the scene. |
 
-The default workflow sends both cars through pickup, load, transport, unload, drive-to-charger, and charge phases. Cargo crates appear on the car after loading and disappear after discharge.
+The default workflow sends both cars through pickup, load, transport, unload, drive-to-charger, and charge phases. Cargo crates appear on the car after loading and disappear after discharge. Camera control is explicit: only `Factory`, `robot-1`, and `robot-2` change the view.
 
 ## Built-In Scenarios
 

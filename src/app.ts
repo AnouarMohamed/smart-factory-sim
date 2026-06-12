@@ -29,6 +29,7 @@ import { RobotController } from '@robot/RobotController';
 import { TelemetryEmitter } from '@robot/TelemetryEmitter';
 import type {
   FleetMetrics,
+  RobotDigitalTwin,
   ScenarioDefinition,
   Task
 } from '@types';
@@ -159,29 +160,27 @@ export class SmartFactoryApp {
     if (command.type === 'overview') {
       this.selectedRobotId = null;
       this.scene.setCameraMode('top-down');
-      this.ui.render(this.snapshot());
+      this.renderImmediate();
       return;
     }
 
     if (command.type === 'select-pov') {
       this.selectedRobotId = command.robotId;
       this.scene.setCameraMode('follow');
-      this.ui.render(this.snapshot());
+      this.renderImmediate();
       return;
     }
 
     if (command.type === 'set-route') {
       this.routeAssignments[command.robotId] = command.routeKey;
-      this.selectedRobotId = command.robotId;
-      this.scene.setCameraMode('follow');
       this.assignConfiguredRoute(command.robotId, command.routeKey);
-      this.ui.render(this.snapshot());
+      this.renderImmediate();
       return;
     }
 
     if (command.type === 'set-speed') {
       this.clock.setTimeScale(command.scale);
-      this.ui.render(this.snapshot());
+      this.renderImmediate();
     }
   }
 
@@ -207,6 +206,7 @@ export class SmartFactoryApp {
     const task = this.toConfiguredTask(robotId, routeKey, pickup, dropoff);
 
     robot.assignMission(task, pickupPath, dropoffPath, chargerPath, this.clock.now());
+    this.synchronizer.sync(robot.twin());
   }
 
   private planPath(
@@ -288,8 +288,7 @@ export class SmartFactoryApp {
     }
 
     this.scene.updateWorkers(this.factory?.workerSnapshots() ?? []);
-    const selectedTwin = twins.find((twin) => twin.id === this.selectedRobotId) ?? twins[0] ?? null;
-    this.scene.render(selectedTwin);
+    this.scene.render(this.followedTwin(twins));
     this.profiler.recordFrame();
 
     if (simTimeMs - this.lastUiRenderMs > 250) {
@@ -298,6 +297,25 @@ export class SmartFactoryApp {
     }
 
     this.profiler.record('render', performance.now() - startedAt);
+  }
+
+  private renderImmediate(): void {
+    const twins = this.digitalTwin.allRobots();
+    for (const twin of twins) {
+      this.scene.updateRobot(twin, 0);
+    }
+    this.scene.updateWorkers(this.factory?.workerSnapshots() ?? []);
+    this.scene.render(this.followedTwin(twins));
+    this.ui.render(this.snapshot());
+    this.lastUiRenderMs = this.clock.now();
+  }
+
+  private followedTwin(twins: readonly RobotDigitalTwin[]): RobotDigitalTwin | null {
+    if (!this.selectedRobotId) {
+      return null;
+    }
+
+    return twins.find((twin) => twin.id === this.selectedRobotId) ?? null;
   }
 
   private snapshot(): DashboardSnapshot {

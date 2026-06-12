@@ -47,8 +47,7 @@ export class UIManager {
   /** Render the simulation HUD without replacing the Three.js canvas. */
   public render(snapshot: DashboardSnapshot): void {
     this.ensureMounted();
-    const selected =
-      snapshot.robots.find((robot) => robot.id === snapshot.selectedRobotId) ?? snapshot.robots[0] ?? null;
+    const selected = snapshot.robots.find((robot) => robot.id === snapshot.selectedRobotId) ?? null;
     const topBar = this.region('top-bar');
     const telemetryStrip = this.region('telemetry-strip');
     const inspector = this.region('inspector');
@@ -70,7 +69,7 @@ export class UIManager {
   }
 
   private renderTopBar(snapshot: DashboardSnapshot, selected: RobotDigitalTwin | null): string {
-    const state = selected?.state.kind ?? 'OFFLINE';
+    const state = selected?.state.kind ?? 'OVERVIEW';
     const active = snapshot.metrics?.activeRobots ?? snapshot.robots.length;
     return `<div class="system-title">
         <strong>Smart Factory Sim</strong>
@@ -83,19 +82,27 @@ export class UIManager {
         ${this.metric('FPS', snapshot.profiler.fps.toFixed(0))}
       </div>
       <div class="command-bar">
-        <button data-command="overview" class="${snapshot.selectedRobotId === null ? 'active' : ''}">Factory</button>
+        <button type="button" data-command="overview" aria-pressed="${snapshot.selectedRobotId === null}" class="${snapshot.selectedRobotId === null ? 'active' : ''}">Factory</button>
         ${snapshot.robots
           .map(
             (robot) =>
-              `<button data-command="select-pov" data-robot-id="${robot.id}" class="${robot.id === snapshot.selectedRobotId ? 'active' : ''}">${robot.id}</button>`
+              `<button type="button" data-command="select-pov" data-robot-id="${robot.id}" aria-pressed="${robot.id === snapshot.selectedRobotId}" class="${robot.id === snapshot.selectedRobotId ? 'active' : ''}">${robot.id}</button>`
           )
           .join('')}
       </div>`;
   }
 
   private renderTelemetryStrip(snapshot: DashboardSnapshot, selected: RobotDigitalTwin | null): string {
-    const speed = selected ? `${selected.velocity.linear.toFixed(2)} m/s` : '0.00 m/s';
-    const battery = selected ? `${selected.battery.soc.toFixed(1)}%` : '0.0%';
+    const fleetSpeed =
+      snapshot.robots.length === 0
+        ? 0
+        : snapshot.robots.reduce((sum, robot) => sum + Math.abs(robot.velocity.linear), 0) / snapshot.robots.length;
+    const fleetBattery =
+      snapshot.robots.length === 0
+        ? 0
+        : snapshot.robots.reduce((sum, robot) => sum + robot.battery.soc, 0) / snapshot.robots.length;
+    const speed = selected ? `${selected.velocity.linear.toFixed(2)} m/s` : `${fleetSpeed.toFixed(2)} m/s avg`;
+    const battery = selected ? `${selected.battery.soc.toFixed(1)}%` : `${fleetBattery.toFixed(1)}% avg`;
     const ultrasonic = selected ? `${selected.sensors.ultrasonic.distanceM.toFixed(2)} m` : '0.00 m';
     const lineError = selected ? selected.sensors.irArray.lineError.toFixed(2) : '0.00';
     const queued = snapshot.metrics?.queuedTasks ?? snapshot.tasks.filter((task) => task.status === 'QUEUED').length;
@@ -119,14 +126,18 @@ export class UIManager {
           snapshot.shelves.length;
 
     const routeKey = selected ? snapshot.routeAssignments[selected.id] : null;
+    const routeSummary = snapshot.robots
+      .map((robot) => `${robot.id}: ${snapshot.routeAssignments[robot.id] ?? 'none'}`)
+      .join('  ');
 
     return `<section class="hud-panel">
-      <header><span>Mission</span><strong>${selected?.state.kind ?? 'offline'}</strong></header>
+      <header><span>Mission</span><strong>${selected?.state.kind ?? 'OVERVIEW'}</strong></header>
       <div class="rows">
-        ${this.row('Route', routeKey ?? 'unassigned')}
-        ${this.row('Pickup', currentTask ? `${currentTask.pickup.x}, ${currentTask.pickup.y}` : 'station pending')}
-        ${this.row('Dropoff', currentTask ? `${currentTask.dropoff.x}, ${currentTask.dropoff.y}` : 'station pending')}
-        ${this.row('Path', `${selected?.path.length ?? 0} cells`)}
+        ${this.row('View', selected?.id ?? 'Factory')}
+        ${this.row('Route', routeKey ?? routeSummary)}
+        ${this.row('Pickup', currentTask ? `${currentTask.pickup.x}, ${currentTask.pickup.y}` : selected ? 'station pending' : 'per car')}
+        ${this.row('Dropoff', currentTask ? `${currentTask.dropoff.x}, ${currentTask.dropoff.y}` : selected ? 'station pending' : 'per car')}
+        ${this.row('Path', selected ? `${selected.path.length} cells` : 'per car')}
         ${this.row('Inventory', `${(stockAverage * 100).toFixed(0)}% avg`)}
         ${this.row('Cloud', `${snapshot.cloudCount} msgs`)}
         ${this.row('Replay', `${snapshot.replayFrames} frames`)}
@@ -152,7 +163,7 @@ export class UIManager {
               ${(['A-B', 'A-C', 'B-D', 'C-D'] as const)
                 .map(
                   (route) =>
-                    `<button data-command="set-route" data-robot-id="${robot.id}" data-route-key="${route}" class="${snapshot.routeAssignments[robot.id] === route ? 'active' : ''}">${route}</button>`
+                    `<button type="button" data-command="set-route" data-robot-id="${robot.id}" data-route-key="${route}" aria-pressed="${snapshot.routeAssignments[robot.id] === route}" class="${snapshot.routeAssignments[robot.id] === route ? 'active' : ''}">${route}</button>`
                 )
                 .join('')}
             </div>`
@@ -262,7 +273,7 @@ export class UIManager {
 
   private speedButton(label: string, scale: number, snapshot: DashboardSnapshot): string {
     const active = scale === 0 ? snapshot.paused : !snapshot.paused && snapshot.timeScale === scale;
-    return `<button data-command="set-speed" data-scale="${scale}" class="${active ? 'active' : ''}">${label}</button>`;
+    return `<button type="button" data-command="set-speed" data-scale="${scale}" aria-pressed="${active}" class="${active ? 'active' : ''}">${label}</button>`;
   }
 
   private installStyles(): void {
@@ -386,7 +397,16 @@ export class UIManager {
         padding: 6px 0;
         border-top: 1px solid oklch(35% 0.025 245 / 0.55);
       }
-      .rows strong { font-size: 12px; color: var(--text); }
+      .rows strong {
+        min-width: 0;
+        max-width: 185px;
+        color: var(--text);
+        font-size: 12px;
+        overflow: hidden;
+        text-align: right;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
       .route-controls { display: grid; gap: 8px; }
       .route-controls div { display: grid; grid-template-columns: 58px repeat(4, 1fr); gap: 6px; align-items: center; }
       .route-controls span, .control-row span { color: var(--muted); font-size: 11px; }

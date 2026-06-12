@@ -28,6 +28,11 @@ import { WheelController } from './WheelController';
 
 type MissionPhase = 'TO_PICKUP' | 'LOADING' | 'TO_DROPOFF' | 'UNLOADING' | 'TO_CHARGER' | 'CHARGING' | 'IDLE';
 
+const ARRIVAL_RADIUS_M = 0.6;
+const LOAD_DWELL_MS = 1100;
+const UNLOAD_DWELL_MS = 1100;
+const CHARGE_DWELL_MS = 4500;
+
 export class RobotController {
   private readonly drive = new DifferentialDrive();
   private readonly wheels = new WheelController(this.drive);
@@ -205,7 +210,7 @@ export class RobotController {
     }
 
     const distance = this.solver.distanceTo(this.pose, target);
-    if (distance < 0.6) {
+    if (distance < ARRIVAL_RADIUS_M) {
       this.pathIndex += 1;
       if (this.pathIndex >= this.path.length) {
         this.completeCurrentSegment(timestamp);
@@ -301,35 +306,21 @@ export class RobotController {
   private stepMissionActions(timestamp: number): void {
     const elapsed = timestamp - this.phaseStartedAt;
 
-    if (
-      (this.missionPhase === 'TO_PICKUP' ||
-        this.missionPhase === 'TO_DROPOFF' ||
-        this.missionPhase === 'TO_CHARGER') &&
-      elapsed > 3600
-    ) {
-      const destination = this.path[this.path.length - 1];
-      if (destination) {
-        this.pose = { x: destination.x, y: destination.y, theta: this.pose.theta };
-      }
-      this.completeCurrentSegment(timestamp);
-      return;
-    }
-
-    if (this.missionPhase === 'LOADING' && elapsed > 1100) {
+    if (this.missionPhase === 'LOADING' && elapsed > LOAD_DWELL_MS) {
       this.payloadOnboard = true;
       this.servo.setTarget(20);
       this.setSegment('TO_DROPOFF', this.dropoffPath, timestamp);
       return;
     }
 
-    if (this.missionPhase === 'UNLOADING' && elapsed > 1100) {
+    if (this.missionPhase === 'UNLOADING' && elapsed > UNLOAD_DWELL_MS) {
       this.payloadOnboard = false;
       this.servo.setTarget(0);
       this.setSegment('TO_CHARGER', this.chargerPath, timestamp);
       return;
     }
 
-    if (this.missionPhase === 'CHARGING' && elapsed > 4500) {
+    if (this.missionPhase === 'CHARGING' && elapsed > CHARGE_DWELL_MS) {
       this.missionPhase = 'IDLE';
       this.stateMachine.replace(idleState(timestamp));
     }
