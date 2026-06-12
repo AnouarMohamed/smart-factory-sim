@@ -35,27 +35,33 @@ export interface DashboardSnapshot {
 
 export class UIManager {
   private mounted = false;
+  private styleElement: HTMLStyleElement | null = null;
+  private readonly handleRootClick = (event: MouseEvent): void => this.handleClick(event);
 
   public constructor(
     private readonly root: HTMLElement,
     private readonly onCommand: (command: DashboardCommand) => void
   ) {
     this.installStyles();
-    this.root.addEventListener('click', (event): void => this.handleClick(event));
+    this.root.addEventListener('click', this.handleRootClick);
   }
 
   /** Render the simulation HUD without replacing the Three.js canvas. */
   public render(snapshot: DashboardSnapshot): void {
     this.ensureMounted();
     const selected = snapshot.robots.find((robot) => robot.id === snapshot.selectedRobotId) ?? null;
-    const topBar = this.region('top-bar');
     const telemetryStrip = this.region('telemetry-strip');
-    const inspector = this.region('inspector');
     const feed = this.region('feed');
 
-    topBar.innerHTML = this.renderTopBar(snapshot, selected);
+    this.ensureTopBarMounted();
+    this.ensureInspectorMounted();
+    this.region('top-metrics').innerHTML = this.renderTopMetrics(snapshot, selected);
+    this.syncPovButtons(this.region('command-bar'), snapshot);
     telemetryStrip.innerHTML = this.renderTelemetryStrip(snapshot, selected);
-    inspector.innerHTML = this.renderInspector(snapshot, selected);
+    this.region('mission-panel').innerHTML = this.renderMissionPanel(snapshot, selected);
+    this.updateClockControls(snapshot);
+    this.syncRouteButtons(this.region('route-controls'), snapshot);
+    this.region('incident-panel').innerHTML = this.renderIncidentPanel(selected);
     feed.innerHTML = this.renderFeed(snapshot.mqttMessages);
   }
 
@@ -68,28 +74,22 @@ export class UIManager {
     return element;
   }
 
-  private renderTopBar(snapshot: DashboardSnapshot, selected: RobotDigitalTwin | null): string {
+  /** Detach DOM listeners and mounted HUD nodes. */
+  public dispose(): void {
+    this.root.removeEventListener('click', this.handleRootClick);
+    this.root.innerHTML = '';
+    this.mounted = false;
+    this.styleElement?.remove();
+    this.styleElement = null;
+  }
+
+  private renderTopMetrics(snapshot: DashboardSnapshot, selected: RobotDigitalTwin | null): string {
     const state = selected?.state.kind ?? 'OVERVIEW';
     const active = snapshot.metrics?.activeRobots ?? snapshot.robots.length;
-    return `<div class="system-title">
-        <strong>Smart Factory Sim</strong>
-        <span>Factory floor, stations A B C D</span>
-      </div>
-      <div class="top-metrics">
-        ${this.metric('Robot', selected?.id ?? 'none')}
+    return `${this.metric('Robot', selected?.id ?? 'none')}
         ${this.metric('State', state)}
         ${this.metric('Active', `${active}/${snapshot.robots.length}`)}
-        ${this.metric('FPS', snapshot.profiler.fps.toFixed(0))}
-      </div>
-      <div class="command-bar">
-        <button type="button" data-command="overview" aria-pressed="${snapshot.selectedRobotId === null}" class="${snapshot.selectedRobotId === null ? 'active' : ''}">Factory</button>
-        ${snapshot.robots
-          .map(
-            (robot) =>
-              `<button type="button" data-command="select-pov" data-robot-id="${robot.id}" aria-pressed="${robot.id === snapshot.selectedRobotId}" class="${robot.id === snapshot.selectedRobotId ? 'active' : ''}">${robot.id}</button>`
-          )
-          .join('')}
-      </div>`;
+        ${this.metric('FPS', snapshot.profiler.fps.toFixed(0))}`;
   }
 
   private renderTelemetryStrip(snapshot: DashboardSnapshot, selected: RobotDigitalTwin | null): string {
@@ -116,8 +116,7 @@ export class UIManager {
       ${this.metric('MQTT', mqttRate)}`;
   }
 
-  private renderInspector(snapshot: DashboardSnapshot, selected: RobotDigitalTwin | null): string {
-    const alerts = selected?.alerts.slice(-3) ?? [];
+  private renderMissionPanel(snapshot: DashboardSnapshot, selected: RobotDigitalTwin | null): string {
     const currentTask = selected?.currentTask;
     const stockAverage =
       snapshot.shelves.length === 0
@@ -130,8 +129,7 @@ export class UIManager {
       .map((robot) => `${robot.id}: ${snapshot.routeAssignments[robot.id] ?? 'none'}`)
       .join('  ');
 
-    return `<section class="hud-panel">
-      <header><span>Mission</span><strong>${selected?.state.kind ?? 'OVERVIEW'}</strong></header>
+    return `<header><span>Mission</span><strong>${selected?.state.kind ?? 'OVERVIEW'}</strong></header>
       <div class="rows">
         ${this.row('View', selected?.id ?? 'Factory')}
         ${this.row('Route', routeKey ?? routeSummary)}
@@ -141,46 +139,19 @@ export class UIManager {
         ${this.row('Inventory', `${(stockAverage * 100).toFixed(0)}% avg`)}
         ${this.row('Cloud', `${snapshot.cloudCount} msgs`)}
         ${this.row('Replay', `${snapshot.replayFrames} frames`)}
-      </div>
-    </section>
-    <section class="hud-panel">
-      <header><span>Factory Controls</span><strong>${snapshot.paused ? 'paused' : `${snapshot.timeScale.toFixed(1)}x`}</strong></header>
-      <div class="control-row">
-        <span>Clock</span>
-        ${this.speedButton('Pause', 0, snapshot)}
-        ${this.speedButton('0.5x', 0.5, snapshot)}
-        ${this.speedButton('1x', 1, snapshot)}
-        ${this.speedButton('2x', 2, snapshot)}
-      </div>
-    </section>
-    <section class="hud-panel">
-      <header><span>Car Routes</span><strong>A B C D</strong></header>
-      <div class="route-controls">
-        ${snapshot.robots
-          .map(
-            (robot) => `<div>
-              <span>${robot.id}</span>
-              ${(['A-B', 'A-C', 'B-D', 'C-D'] as const)
-                .map(
-                  (route) =>
-                    `<button type="button" data-command="set-route" data-robot-id="${robot.id}" data-route-key="${route}" aria-pressed="${snapshot.routeAssignments[robot.id] === route}" class="${snapshot.routeAssignments[robot.id] === route ? 'active' : ''}">${route}</button>`
-                )
-                .join('')}
-            </div>`
-          )
-          .join('')}
-      </div>
-    </section>
-    <section class="hud-panel">
-      <header><span>Incidents</span><strong>${alerts.length}</strong></header>
+      </div>`;
+  }
+
+  private renderIncidentPanel(selected: RobotDigitalTwin | null): string {
+    const alerts = selected?.alerts.slice(-3) ?? [];
+    return `<header><span>Incidents</span><strong>${alerts.length}</strong></header>
       <div class="incident-list">
         ${
           alerts.length === 0
             ? '<p>Nominal operation</p>'
             : alerts.map((alert) => `<p class="${alert.severity.toLowerCase()}">${alert.message}</p>`).join('')
         }
-      </div>
-    </section>`;
+      </div>`;
   }
 
   private renderFeed(messages: readonly MQTTMessage[]): string {
@@ -222,6 +193,44 @@ export class UIManager {
       </main>
     </div>`;
     this.mounted = true;
+  }
+
+  private ensureTopBarMounted(): void {
+    const topBar = this.region('top-bar');
+    if (topBar.childElementCount > 0) {
+      return;
+    }
+
+    topBar.innerHTML = `<div class="system-title">
+        <strong>Smart Factory Sim</strong>
+        <span>Factory floor, stations A B C D</span>
+      </div>
+      <div class="top-metrics" data-region="top-metrics"></div>
+      <div class="command-bar" data-region="command-bar"></div>`;
+  }
+
+  private ensureInspectorMounted(): void {
+    const inspector = this.region('inspector');
+    if (inspector.childElementCount > 0) {
+      return;
+    }
+
+    inspector.innerHTML = `<section class="hud-panel" data-region="mission-panel"></section>
+      <section class="hud-panel">
+        <header><span>Factory Controls</span><strong data-region="clock-state">1.0x</strong></header>
+        <div class="control-row">
+          <span>Clock</span>
+          ${this.speedButton('Pause', 0)}
+          ${this.speedButton('0.5x', 0.5)}
+          ${this.speedButton('1x', 1)}
+          ${this.speedButton('2x', 2)}
+        </div>
+      </section>
+      <section class="hud-panel">
+        <header><span>Car Routes</span><strong>A B C D</strong></header>
+        <div class="route-controls" data-region="route-controls"></div>
+      </section>
+      <section class="hud-panel" data-region="incident-panel"></section>`;
   }
 
   private handleClick(event: MouseEvent): void {
@@ -271,13 +280,76 @@ export class UIManager {
     return value === 'A-B' || value === 'A-C' || value === 'B-D' || value === 'C-D';
   }
 
-  private speedButton(label: string, scale: number, snapshot: DashboardSnapshot): string {
-    const active = scale === 0 ? snapshot.paused : !snapshot.paused && snapshot.timeScale === scale;
-    return `<button type="button" data-command="set-speed" data-scale="${scale}" aria-pressed="${active}" class="${active ? 'active' : ''}">${label}</button>`;
+  private speedButton(label: string, scale: number): string {
+    return `<button type="button" data-command="set-speed" data-scale="${scale}" aria-pressed="false">${label}</button>`;
+  }
+
+  private syncPovButtons(container: HTMLElement, snapshot: DashboardSnapshot): void {
+    const signature = snapshot.robots.map((robot) => robot.id).join('|');
+    if (container.dataset.signature !== signature) {
+      container.dataset.signature = signature;
+      container.innerHTML = `<button type="button" data-command="overview">Factory</button>${snapshot.robots
+        .map(
+          (robot) =>
+            `<button type="button" data-command="select-pov" data-robot-id="${robot.id}">${robot.id}</button>`
+        )
+        .join('')}`;
+    }
+
+    for (const button of container.querySelectorAll<HTMLButtonElement>('button[data-command]')) {
+      const active =
+        button.dataset.command === 'overview'
+          ? snapshot.selectedRobotId === null
+          : button.dataset.robotId === snapshot.selectedRobotId;
+      this.setButtonActive(button, active);
+    }
+  }
+
+  private updateClockControls(snapshot: DashboardSnapshot): void {
+    this.region('clock-state').textContent = snapshot.paused ? 'paused' : `${snapshot.timeScale.toFixed(1)}x`;
+    for (const button of this.root.querySelectorAll<HTMLButtonElement>('button[data-command="set-speed"]')) {
+      const scale = Number(button.dataset.scale);
+      const active = scale === 0 ? snapshot.paused : !snapshot.paused && snapshot.timeScale === scale;
+      this.setButtonActive(button, active);
+    }
+  }
+
+  private syncRouteButtons(container: HTMLElement, snapshot: DashboardSnapshot): void {
+    const signature = snapshot.robots.map((robot) => robot.id).join('|');
+    if (container.dataset.signature !== signature) {
+      container.dataset.signature = signature;
+      container.innerHTML = snapshot.robots
+        .map(
+          (robot) => `<div>
+            <span>${robot.id}</span>
+            ${(['A-B', 'A-C', 'B-D', 'C-D'] as const)
+              .map(
+                (route) =>
+                  `<button type="button" data-command="set-route" data-robot-id="${robot.id}" data-route-key="${route}">${route}</button>`
+              )
+              .join('')}
+          </div>`
+        )
+        .join('');
+    }
+
+    for (const button of container.querySelectorAll<HTMLButtonElement>('button[data-command="set-route"]')) {
+      const robotId = button.dataset.robotId;
+      const routeKey = button.dataset.routeKey;
+      const active = Boolean(robotId && this.isRouteKey(routeKey) && snapshot.routeAssignments[robotId] === routeKey);
+      this.setButtonActive(button, active);
+    }
+  }
+
+  private setButtonActive(button: HTMLButtonElement, active: boolean): void {
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-pressed', String(active));
   }
 
   private installStyles(): void {
+    document.querySelector('#smart-factory-ui-styles')?.remove();
     const style = document.createElement('style');
+    style.id = 'smart-factory-ui-styles';
     style.textContent = `
       :root {
         color-scheme: dark;
@@ -304,9 +376,11 @@ export class UIManager {
       .app-shell, .viewport, #scene-root { width: 100vw; height: 100vh; }
       .viewport { position: relative; min-width: 0; min-height: 0; }
       #scene-root { position: absolute; inset: 0; }
+      #scene-root canvas { pointer-events: none; }
       .top-bar, .telemetry-strip, .inspector, .mqtt-strip {
         position: absolute;
         z-index: 2;
+        pointer-events: auto;
         border: 1px solid var(--border);
         background: var(--surface);
         box-shadow: 0 18px 50px oklch(7% 0.02 245 / 0.35);
@@ -419,10 +493,15 @@ export class UIManager {
         color: var(--text);
         font: 12px Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         cursor: pointer;
+        touch-action: manipulation;
       }
       button:hover, button.active {
         border-color: var(--cyan);
         color: var(--cyan);
+      }
+      button.active {
+        background: oklch(25% 0.075 220 / 0.96);
+        box-shadow: inset 0 0 0 1px oklch(78% 0.16 220 / 0.35);
       }
       .incident-list { display: grid; gap: 6px; }
       .incident-list p {
@@ -479,5 +558,6 @@ export class UIManager {
       }
     `;
     document.head.appendChild(style);
+    this.styleElement = style;
   }
 }

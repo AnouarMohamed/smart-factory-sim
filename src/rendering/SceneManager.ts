@@ -26,6 +26,7 @@ export class SceneManager {
   private readonly robots = new Map<string, RobotMesh>();
   private readonly workers = new Map<string, WorkerMesh>();
   private readonly pathVisualizations = new Map<string, PathVisualization>();
+  private readonly resizeHandler = (): void => this.resize();
   private scenario: ScenarioDefinition | null = null;
 
   public constructor(private readonly container: HTMLElement) {
@@ -34,7 +35,7 @@ export class SceneManager {
     this.renderer.shadowMap.enabled = true;
     this.renderer.setClearColor('#0A0E1A');
     this.container.appendChild(this.renderer.domElement);
-    window.addEventListener('resize', (): void => this.resize());
+    window.addEventListener('resize', this.resizeHandler);
     this.resize();
   }
 
@@ -113,6 +114,17 @@ export class SceneManager {
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height, false);
+  }
+
+  /** Release browser and WebGL resources owned by the scene. */
+  public dispose(): void {
+    window.removeEventListener('resize', this.resizeHandler);
+    this.renderer.dispose();
+    this.renderer.domElement.remove();
+    this.scene.clear();
+    this.robots.clear();
+    this.workers.clear();
+    this.pathVisualizations.clear();
   }
 
   private addGridLines(width: number, height: number, material: THREE.LineBasicMaterial): void {

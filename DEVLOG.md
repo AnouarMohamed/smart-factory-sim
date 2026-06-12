@@ -69,3 +69,10 @@
 **Rationale:** Operators need explicit control. A route assignment should not switch the view, and cars should never jump to stations because a demo timer expired.
 **Trade-off:** Long factory routes now take real simulated travel time. This is slower than the previous demo shortcut but makes the simulation believable and debuggable.
 **Files affected:** `README.md`, `ARCHITECTURE.md`, `DEVLOG.md`, `src/app.ts`, `src/robot/RobotController.ts`, `src/ui/UIManager.ts`, `tests/robot/RobotController.test.ts`
+
+## [BUILD-011] - Non-Detaching HUD Buttons
+**Date:** 2026-06-12T22:56:53+01:00
+**Decision:** Keep POV, route, and speed buttons mounted across render ticks, update only their active attributes/classes, and add app disposal plus root replacement for Vite hot reloads.
+**Rationale:** Replacing button DOM every telemetry refresh can detach a button while a click is in progress. Hot reloads can also leave old app loops rendering stale HUD state. Both behaviors make controls feel broken.
+**Trade-off:** `UIManager` now has more explicit DOM synchronization code instead of simple full-panel `innerHTML` replacement, but interactive controls are stable and testable.
+**Files affected:** `ARCHITECTURE.md`, `DEVLOG.md`, `src/main.ts`, `src/app.ts`, `src/rendering/SceneManager.ts`, `src/ui/UIManager.ts`

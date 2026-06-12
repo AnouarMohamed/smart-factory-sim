@@ -45,6 +45,10 @@ The default factory scene is an operator-configurable two-car logistics loop:
 | Visual state | `SceneManager` + `RobotMesh` | Per-car paths, cargo presence, forklift arm motion, steering wheels, station labels, chargers, docks, and crate stacks are rendered. |
 | POV control | `CameraController` | `Factory` shows the full facility; robot buttons follow the selected car. |
 
+## UI Control Stability
+
+`UIManager` mounts interactive command buttons once and updates their active state in place. Telemetry text can refresh frequently, but POV, route, and clock buttons are not recreated during render ticks. The browser entry point also resets the `#app` root and disposes the previous app during Vite hot reloads, preventing stale schedulers or event listeners from overwriting the current HUD.
+
 ## Module Responsibilities
 
 | Module | Responsibility |

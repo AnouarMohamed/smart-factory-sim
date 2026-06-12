@@ -110,6 +110,13 @@ export class SmartFactoryApp {
     this.scheduler?.stop();
   }
 
+  /** Stop rendering and detach DOM/browser listeners. */
+  public dispose(): void {
+    this.stop();
+    this.scene.dispose();
+    this.ui.dispose();
+  }
+
   private bindEvents(): void {
     this.eventBus.on('mqtt:message-published', (message): void => {
       this.messageBus.push(message);
