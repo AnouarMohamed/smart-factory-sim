@@ -7,12 +7,24 @@ import type { EdgeSummary } from '@iot/EdgeNode';
 import type { OPCUANode } from '@iot/OPCUASimulator';
 import type { Alert, FleetMetrics, FleetTask, MQTTMessage, RobotDigitalTwin, ShelfEntity } from '@types';
 
+export type RouteKey = 'A-B' | 'A-C' | 'B-D' | 'C-D';
+
+export type DashboardCommand =
+  | { readonly type: 'select-pov'; readonly robotId: string }
+  | { readonly type: 'overview' }
+  | { readonly type: 'set-route'; readonly robotId: string; readonly routeKey: RouteKey }
+  | { readonly type: 'set-speed'; readonly scale: number };
+
 export interface DashboardSnapshot {
   readonly robots: readonly RobotDigitalTwin[];
+  readonly selectedRobotId: string | null;
+  readonly routeAssignments: Readonly<Record<string, RouteKey>>;
   readonly mqttMessages: readonly MQTTMessage[];
   readonly shelves: readonly ShelfEntity[];
   readonly tasks: readonly FleetTask[];
   readonly metrics: FleetMetrics | null;
+  readonly timeScale: number;
+  readonly paused: boolean;
   readonly profiler: ProfilerSnapshot;
   readonly alerts: readonly Alert[];
   readonly cloudCount: number;
@@ -24,14 +36,19 @@ export interface DashboardSnapshot {
 export class UIManager {
   private mounted = false;
 
-  public constructor(private readonly root: HTMLElement) {
+  public constructor(
+    private readonly root: HTMLElement,
+    private readonly onCommand: (command: DashboardCommand) => void
+  ) {
     this.installStyles();
+    this.root.addEventListener('click', (event): void => this.handleClick(event));
   }
 
   /** Render the simulation HUD without replacing the Three.js canvas. */
   public render(snapshot: DashboardSnapshot): void {
     this.ensureMounted();
-    const selected = snapshot.robots[0] ?? null;
+    const selected =
+      snapshot.robots.find((robot) => robot.id === snapshot.selectedRobotId) ?? snapshot.robots[0] ?? null;
     const topBar = this.region('top-bar');
     const telemetryStrip = this.region('telemetry-strip');
     const inspector = this.region('inspector');
@@ -57,13 +74,22 @@ export class UIManager {
     const active = snapshot.metrics?.activeRobots ?? snapshot.robots.length;
     return `<div class="system-title">
         <strong>Smart Factory Sim</strong>
-        <span>Small Warehouse</span>
+        <span>Factory floor, stations A B C D</span>
       </div>
       <div class="top-metrics">
         ${this.metric('Robot', selected?.id ?? 'none')}
         ${this.metric('State', state)}
         ${this.metric('Active', `${active}/${snapshot.robots.length}`)}
         ${this.metric('FPS', snapshot.profiler.fps.toFixed(0))}
+      </div>
+      <div class="command-bar">
+        <button data-command="overview" class="${snapshot.selectedRobotId === null ? 'active' : ''}">Factory</button>
+        ${snapshot.robots
+          .map(
+            (robot) =>
+              `<button data-command="select-pov" data-robot-id="${robot.id}" class="${robot.id === snapshot.selectedRobotId ? 'active' : ''}">${robot.id}</button>`
+          )
+          .join('')}
       </div>`;
   }
 
@@ -92,15 +118,46 @@ export class UIManager {
         : snapshot.shelves.reduce((sum, shelf) => sum + shelf.stockLevel / shelf.capacity, 0) /
           snapshot.shelves.length;
 
+    const routeKey = selected ? snapshot.routeAssignments[selected.id] : null;
+
     return `<section class="hud-panel">
-      <header><span>Mission</span><strong>${currentTask?.id ?? 'routing'}</strong></header>
+      <header><span>Mission</span><strong>${selected?.state.kind ?? 'offline'}</strong></header>
       <div class="rows">
-        ${this.row('Pickup', currentTask ? `${currentTask.pickup.x}, ${currentTask.pickup.y}` : 'assigned route')}
-        ${this.row('Dropoff', currentTask ? `${currentTask.dropoff.x}, ${currentTask.dropoff.y}` : 'dock pending')}
+        ${this.row('Route', routeKey ?? 'unassigned')}
+        ${this.row('Pickup', currentTask ? `${currentTask.pickup.x}, ${currentTask.pickup.y}` : 'station pending')}
+        ${this.row('Dropoff', currentTask ? `${currentTask.dropoff.x}, ${currentTask.dropoff.y}` : 'station pending')}
         ${this.row('Path', `${selected?.path.length ?? 0} cells`)}
         ${this.row('Inventory', `${(stockAverage * 100).toFixed(0)}% avg`)}
         ${this.row('Cloud', `${snapshot.cloudCount} msgs`)}
         ${this.row('Replay', `${snapshot.replayFrames} frames`)}
+      </div>
+    </section>
+    <section class="hud-panel">
+      <header><span>Factory Controls</span><strong>${snapshot.paused ? 'paused' : `${snapshot.timeScale.toFixed(1)}x`}</strong></header>
+      <div class="control-row">
+        <span>Clock</span>
+        ${this.speedButton('Pause', 0, snapshot)}
+        ${this.speedButton('0.5x', 0.5, snapshot)}
+        ${this.speedButton('1x', 1, snapshot)}
+        ${this.speedButton('2x', 2, snapshot)}
+      </div>
+    </section>
+    <section class="hud-panel">
+      <header><span>Car Routes</span><strong>A B C D</strong></header>
+      <div class="route-controls">
+        ${snapshot.robots
+          .map(
+            (robot) => `<div>
+              <span>${robot.id}</span>
+              ${(['A-B', 'A-C', 'B-D', 'C-D'] as const)
+                .map(
+                  (route) =>
+                    `<button data-command="set-route" data-robot-id="${robot.id}" data-route-key="${route}" class="${snapshot.routeAssignments[robot.id] === route ? 'active' : ''}">${route}</button>`
+                )
+                .join('')}
+            </div>`
+          )
+          .join('')}
       </div>
     </section>
     <section class="hud-panel">
@@ -154,6 +211,58 @@ export class UIManager {
       </main>
     </div>`;
     this.mounted = true;
+  }
+
+  private handleClick(event: MouseEvent): void {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) {
+      return;
+    }
+
+    const button = target.closest<HTMLButtonElement>('button[data-command]');
+    if (!button) {
+      return;
+    }
+
+    const command = button.dataset.command;
+    if (command === 'overview') {
+      this.onCommand({ type: 'overview' });
+      return;
+    }
+
+    if (command === 'select-pov' && button.dataset.robotId) {
+      this.onCommand({ type: 'select-pov', robotId: button.dataset.robotId });
+      return;
+    }
+
+    if (
+      command === 'set-route' &&
+      button.dataset.robotId &&
+      this.isRouteKey(button.dataset.routeKey)
+    ) {
+      this.onCommand({
+        type: 'set-route',
+        robotId: button.dataset.robotId,
+        routeKey: button.dataset.routeKey
+      });
+      return;
+    }
+
+    if (command === 'set-speed') {
+      const scale = Number(button.dataset.scale);
+      if (Number.isFinite(scale)) {
+        this.onCommand({ type: 'set-speed', scale });
+      }
+    }
+  }
+
+  private isRouteKey(value: string | undefined): value is RouteKey {
+    return value === 'A-B' || value === 'A-C' || value === 'B-D' || value === 'C-D';
+  }
+
+  private speedButton(label: string, scale: number, snapshot: DashboardSnapshot): string {
+    const active = scale === 0 ? snapshot.paused : !snapshot.paused && snapshot.timeScale === scale;
+    return `<button data-command="set-speed" data-scale="${scale}" class="${active ? 'active' : ''}">${label}</button>`;
   }
 
   private installStyles(): void {
@@ -211,6 +320,12 @@ export class UIManager {
         grid-auto-flow: column;
         grid-auto-columns: minmax(116px, 1fr);
         gap: 1px;
+      }
+      .command-bar {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
       }
       .hud-metric {
         min-width: 0;
@@ -272,6 +387,23 @@ export class UIManager {
         border-top: 1px solid oklch(35% 0.025 245 / 0.55);
       }
       .rows strong { font-size: 12px; color: var(--text); }
+      .route-controls { display: grid; gap: 8px; }
+      .route-controls div { display: grid; grid-template-columns: 58px repeat(4, 1fr); gap: 6px; align-items: center; }
+      .route-controls span, .control-row span { color: var(--muted); font-size: 11px; }
+      .control-row { display: grid; grid-template-columns: 58px repeat(4, 1fr); gap: 6px; align-items: center; }
+      button {
+        height: 30px;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        background: var(--surface-2);
+        color: var(--text);
+        font: 12px Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        cursor: pointer;
+      }
+      button:hover, button.active {
+        border-color: var(--cyan);
+        color: var(--cyan);
+      }
       .incident-list { display: grid; gap: 6px; }
       .incident-list p {
         margin: 0;
@@ -311,6 +443,7 @@ export class UIManager {
           top: 10px;
           display: grid;
         }
+        .command-bar { justify-content: start; }
         .top-metrics {
           grid-auto-flow: initial;
           grid-template-columns: repeat(2, minmax(0, 1fr));

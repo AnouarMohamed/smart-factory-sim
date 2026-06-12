@@ -15,6 +15,9 @@ export class RobotMesh {
   private readonly arm = new ForkliftArmMesh();
   private readonly statusLed: THREE.Mesh;
   private readonly sensorVisualization = new SensorVisualization();
+  private readonly cargo: THREE.Mesh;
+  private lastHeading: number | null = null;
+  private steerAngle = 0;
 
   public constructor(public readonly robotId: string) {
     const metal = new MetalMaterial();
@@ -50,6 +53,14 @@ export class RobotMesh {
     led.position.set(-0.34, 0.43, 0);
     this.statusLed = led;
 
+    this.cargo = new THREE.Mesh(
+      new THREE.BoxGeometry(0.38, 0.26, 0.34),
+      new THREE.MeshStandardMaterial({ color: '#FFB300', emissive: '#332100', roughness: 0.62 })
+    );
+    this.cargo.position.set(-0.12, 0.55, 0);
+    this.cargo.castShadow = true;
+    this.cargo.visible = false;
+
     this.wheels = [new WheelMesh(), new WheelMesh(), new WheelMesh(), new WheelMesh()];
     const wheelPositions = [
       [0.3, 0.13, 0.38],
@@ -63,7 +74,7 @@ export class RobotMesh {
       this.group.add(wheel.mesh);
     });
 
-    this.group.add(body, topPanel, nose, led, this.arm.group, this.sensorVisualization.group);
+    this.group.add(body, topPanel, nose, led, this.cargo, this.arm.group, this.sensorVisualization.group);
   }
 
   /** Update robot mesh transform and visual state from a twin snapshot. */
@@ -75,8 +86,26 @@ export class RobotMesh {
     this.wheels[2].spin(twin.wheels.leftRPM, deltaSeconds);
     this.wheels[1].spin(twin.wheels.rightRPM, deltaSeconds);
     this.wheels[3].spin(twin.wheels.rightRPM, deltaSeconds);
+    this.updateSteering(twin.pose.theta, deltaSeconds);
     this.sensorVisualization.update(twin);
+    this.cargo.visible = twin.payload !== null;
     this.setLed(twin.state.kind);
+  }
+
+  private updateSteering(heading: number, deltaSeconds: number): void {
+    const headingDelta = this.lastHeading === null ? 0 : this.normalizeAngle(heading - this.lastHeading);
+    this.lastHeading = heading;
+    const turnRate = deltaSeconds > 0 ? headingDelta / deltaSeconds : 0;
+    const targetSteer = THREE.MathUtils.clamp(turnRate * 0.18, -0.55, 0.55);
+    this.steerAngle = THREE.MathUtils.lerp(this.steerAngle, targetSteer, Math.min(1, deltaSeconds * 8));
+    this.wheels[0].steer(this.steerAngle);
+    this.wheels[1].steer(this.steerAngle);
+    this.wheels[2].steer(0);
+    this.wheels[3].steer(0);
+  }
+
+  private normalizeAngle(angle: number): number {
+    return Math.atan2(Math.sin(angle), Math.cos(angle));
   }
 
   private setLed(state: RobotDigitalTwin['state']['kind']): void {

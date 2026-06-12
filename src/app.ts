@@ -30,11 +30,26 @@ import { TelemetryEmitter } from '@robot/TelemetryEmitter';
 import type {
   FleetMetrics,
   ScenarioDefinition,
-  ScenarioTaskDefinition,
   Task
 } from '@types';
 import { UIManager } from '@ui/UIManager';
-import type { DashboardSnapshot } from '@ui/UIManager';
+import type { DashboardCommand, DashboardSnapshot, RouteKey } from '@ui/UIManager';
+
+type StationId = 'A' | 'B' | 'C' | 'D';
+
+const FACTORY_STATIONS: Readonly<Record<StationId, { readonly x: number; readonly y: number }>> = {
+  A: { x: 4, y: 6 },
+  B: { x: 9, y: 6 },
+  C: { x: 13, y: 6 },
+  D: { x: 18, y: 8 }
+};
+
+const ROUTE_MAP: Readonly<Record<RouteKey, { readonly pickup: StationId; readonly dropoff: StationId }>> = {
+  'A-B': { pickup: 'A', dropoff: 'B' },
+  'A-C': { pickup: 'A', dropoff: 'C' },
+  'B-D': { pickup: 'B', dropoff: 'D' },
+  'C-D': { pickup: 'C', dropoff: 'D' }
+};
 
 export class SmartFactoryApp {
   private readonly eventBus = new EventBus();
@@ -62,9 +77,14 @@ export class SmartFactoryApp {
   private metrics: FleetMetrics | null = null;
   private scheduler: TickScheduler | null = null;
   private lastUiRenderMs = 0;
+  private selectedRobotId: string | null = null;
+  private readonly routeAssignments: Record<string, RouteKey> = {
+    'robot-1': 'A-B',
+    'robot-2': 'C-D'
+  };
 
   public constructor(root: HTMLElement) {
-    this.ui = new UIManager(root);
+    this.ui = new UIManager(root, (command): void => this.handleDashboardCommand(command));
     this.ui.render(this.snapshot());
     this.scene = new SceneManager(this.ui.sceneRoot());
     this.bindEvents();
@@ -118,33 +138,85 @@ export class SmartFactoryApp {
       this.synchronizer.sync(robot.twin());
     }
 
-    for (const taskDefinition of scenario.tasks) {
-      this.fleet.enqueue(this.toTask(taskDefinition));
-    }
-
-    this.assignInitialRoutes(scenario);
+    this.assignInitialRoutes();
     this.ui.render(this.snapshot());
   }
 
-  private assignInitialRoutes(scenario: ScenarioDefinition): void {
+  private assignInitialRoutes(): void {
     if (!this.factory) {
       return;
     }
 
-    const planner = new AStarPlanner(this.factory.grid.navigation());
-    const tasks = this.fleet.tasks();
     this.robots.forEach((robot, index) => {
-      const task = tasks[index % Math.max(1, tasks.length)];
-      if (!task) {
-        return;
-      }
-
-      const start = scenario.robots.find((candidate) => candidate.id === robot.id)?.start ?? { x: 1, y: 1 };
-      const pickupPlan = planner.plan(start, task.pickup);
-      const dropoffPlan = planner.plan(task.pickup, task.dropoff);
-      const path = this.smoother.smooth([...pickupPlan.path, ...dropoffPlan.path.slice(1)]);
-      robot.assignTask(task, path, this.clock.now());
+      const fallbackRoute: RouteKey = index === 0 ? 'A-B' : 'C-D';
+      const routeKey = this.routeAssignments[robot.id] ?? fallbackRoute;
+      this.routeAssignments[robot.id] = routeKey;
+      this.assignConfiguredRoute(robot.id, routeKey);
     });
+  }
+
+  private handleDashboardCommand(command: DashboardCommand): void {
+    if (command.type === 'overview') {
+      this.selectedRobotId = null;
+      this.scene.setCameraMode('top-down');
+      this.ui.render(this.snapshot());
+      return;
+    }
+
+    if (command.type === 'select-pov') {
+      this.selectedRobotId = command.robotId;
+      this.scene.setCameraMode('follow');
+      this.ui.render(this.snapshot());
+      return;
+    }
+
+    if (command.type === 'set-route') {
+      this.routeAssignments[command.robotId] = command.routeKey;
+      this.selectedRobotId = command.robotId;
+      this.scene.setCameraMode('follow');
+      this.assignConfiguredRoute(command.robotId, command.routeKey);
+      this.ui.render(this.snapshot());
+      return;
+    }
+
+    if (command.type === 'set-speed') {
+      this.clock.setTimeScale(command.scale);
+      this.ui.render(this.snapshot());
+    }
+  }
+
+  private assignConfiguredRoute(robotId: string, routeKey: RouteKey): void {
+    if (!this.factory) {
+      return;
+    }
+
+    const robot = this.robots.find((candidate) => candidate.id === robotId);
+    if (!robot) {
+      return;
+    }
+
+    const route = ROUTE_MAP[routeKey];
+    const pickup = FACTORY_STATIONS[route.pickup];
+    const dropoff = FACTORY_STATIONS[route.dropoff];
+    const charger = robotId.endsWith('2') ? { x: 3, y: 18 } : { x: 1, y: 18 };
+    const planner = new AStarPlanner(this.factory.grid.navigation());
+    const start = robot.currentPose();
+    const pickupPath = this.planPath(planner, start, pickup);
+    const dropoffPath = this.planPath(planner, pickup, dropoff);
+    const chargerPath = this.planPath(planner, dropoff, charger);
+    const task = this.toConfiguredTask(robotId, routeKey, pickup, dropoff);
+
+    robot.assignMission(task, pickupPath, dropoffPath, chargerPath, this.clock.now());
+  }
+
+  private planPath(
+    planner: AStarPlanner,
+    start: { readonly x: number; readonly y: number },
+    goal: { readonly x: number; readonly y: number }
+  ): readonly { readonly x: number; readonly y: number }[] {
+    const plan = planner.plan(start, goal);
+    const path = plan.found && plan.path.length > 0 ? plan.path : [start, goal];
+    return this.smoother.smooth(path);
   }
 
   private onPhysicsTick(deltaMs: number): void {
@@ -216,7 +288,8 @@ export class SmartFactoryApp {
     }
 
     this.scene.updateWorkers(this.factory?.workerSnapshots() ?? []);
-    this.scene.render(twins[0] ?? null);
+    const selectedTwin = twins.find((twin) => twin.id === this.selectedRobotId) ?? twins[0] ?? null;
+    this.scene.render(selectedTwin);
     this.profiler.recordFrame();
 
     if (simTimeMs - this.lastUiRenderMs > 250) {
@@ -232,10 +305,14 @@ export class SmartFactoryApp {
     const alerts = twins.flatMap((twin) => twin.alerts);
     return {
       robots: twins,
+      selectedRobotId: this.selectedRobotId,
+      routeAssignments: this.routeAssignments,
       mqttMessages: this.messageBus.recent(30),
       shelves: this.factory?.shelves.all() ?? [],
       tasks: this.fleet.tasks(),
       metrics: this.metrics,
+      timeScale: this.clock.getTimeScale(),
+      paused: this.clock.isPaused(),
       profiler: this.profiler.snapshot(),
       alerts,
       cloudCount: this.cloud.count(),
@@ -245,17 +322,22 @@ export class SmartFactoryApp {
     };
   }
 
-  private toTask(taskDefinition: ScenarioTaskDefinition): Task {
+  private toConfiguredTask(
+    robotId: string,
+    routeKey: RouteKey,
+    pickup: { readonly x: number; readonly y: number },
+    dropoff: { readonly x: number; readonly y: number }
+  ): Task {
     return {
-      id: taskDefinition.id,
-      priority: taskDefinition.priority,
-      pickup: taskDefinition.pickup,
-      dropoff: taskDefinition.dropoff,
+      id: `${robotId}-${routeKey}-${Math.round(this.clock.now())}`,
+      priority: routeKey.endsWith('D') ? 'HIGH' : 'NORMAL',
+      pickup,
+      dropoff,
       payload: {
-        id: `${taskDefinition.id}-payload`,
-        itemId: taskDefinition.itemId,
-        weightKg: taskDefinition.weightKg,
-        dimensionsM: { width: 0.28, depth: 0.22, height: 0.18 }
+        id: `${robotId}-${routeKey}-crate`,
+        itemId: `merchandise-${routeKey}`,
+        weightKg: 1.2,
+        dimensionsM: { width: 0.34, depth: 0.3, height: 0.24 }
       },
       createdAtMs: this.clock.now()
     };

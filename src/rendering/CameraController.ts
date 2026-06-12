@@ -8,7 +8,7 @@ import type * as THREE from 'three';
 export type CameraMode = 'orbit' | 'follow' | 'top-down' | 'free';
 
 export class CameraController {
-  private mode: CameraMode = 'follow';
+  private mode: CameraMode = 'top-down';
 
   public constructor(private readonly camera: THREE.PerspectiveCamera) {}
 
@@ -20,7 +20,7 @@ export class CameraController {
   /** Update camera placement from mode and optional followed robot. */
   public update(followed: RobotDigitalTwin | null): void {
     if (this.mode === 'top-down') {
-      this.camera.position.set(10, 18, 10);
+      this.camera.position.set(10, 30, 10);
       this.camera.lookAt(10, 0, 10);
       return;
     }

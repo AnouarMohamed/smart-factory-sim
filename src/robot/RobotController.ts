@@ -26,6 +26,8 @@ import { ServoController } from './ServoController';
 import { StateMachine } from './StateMachine';
 import { WheelController } from './WheelController';
 
+type MissionPhase = 'TO_PICKUP' | 'LOADING' | 'TO_DROPOFF' | 'UNLOADING' | 'TO_CHARGER' | 'CHARGING' | 'IDLE';
+
 export class RobotController {
   private readonly drive = new DifferentialDrive();
   private readonly wheels = new WheelController(this.drive);
@@ -44,6 +46,12 @@ export class RobotController {
   private path: Vector2[] = [];
   private pathIndex = 0;
   private currentTask: Task | null = null;
+  private pickupPath: readonly Vector2[] = [];
+  private dropoffPath: readonly Vector2[] = [];
+  private chargerPath: readonly Vector2[] = [];
+  private missionPhase: MissionPhase = 'IDLE';
+  private phaseStartedAt = 0;
+  private payloadOnboard = false;
   private latestTwin: RobotDigitalTwin;
 
   public constructor(
@@ -61,6 +69,8 @@ export class RobotController {
     this.currentTask = task;
     this.path = path.slice();
     this.pathIndex = Math.min(1, Math.max(0, this.path.length - 1));
+    this.missionPhase = 'TO_PICKUP';
+    this.payloadOnboard = false;
     this.stateMachine.transition({
       kind: 'NAVIGATING',
       destination: task.pickup,
@@ -76,13 +86,38 @@ export class RobotController {
     this.latestTwin = this.createTwin(timestamp, 0, 0);
   }
 
+  /** Assign a full mission with pickup, dropoff, and charger segments. */
+  public assignMission(
+    task: Task,
+    pickupPath: readonly Vector2[],
+    dropoffPath: readonly Vector2[],
+    chargerPath: readonly Vector2[],
+    timestamp: number
+  ): void {
+    this.currentTask = task;
+    this.pickupPath = pickupPath;
+    this.dropoffPath = dropoffPath;
+    this.chargerPath = chargerPath;
+    this.payloadOnboard = false;
+    this.setSegment('TO_PICKUP', pickupPath, timestamp);
+    this.eventBus.emit('fleet:task-assigned', {
+      taskId: task.id,
+      robotId: this.id,
+      score: 1,
+      reason: 'Operator configured route assignment'
+    });
+    this.latestTwin = this.createTwin(timestamp, 0, 0);
+  }
+
   /** Advance the robot simulation and return the latest digital twin snapshot. */
   public step(deltaMs: number, timestamp: number): RobotDigitalTwin {
     const deltaSeconds = deltaMs / 1000;
-    const currentState = this.stateMachine.current();
-    const command = currentState.kind === 'NAVIGATING' || currentState.kind === 'TRANSPORTING'
-      ? this.followPath(deltaSeconds)
-      : { linear: 0, angular: 0 };
+    this.stepMissionActions(timestamp);
+    const motionState = this.stateMachine.current();
+    const command =
+      motionState.kind === 'NAVIGATING' || motionState.kind === 'TRANSPORTING'
+        ? this.followPath(deltaSeconds, timestamp)
+        : { linear: 0, angular: 0 };
 
     const wheelCommand = this.wheels.setVelocity(command.linear, command.angular);
     const kinematics = this.drive.integrate(
@@ -95,11 +130,11 @@ export class RobotController {
     this.wheels.updateFeedback(kinematics.wheels);
 
     const battery =
-      currentState.kind === 'CHARGING'
+      motionState.kind === 'CHARGING'
         ? this.battery.charge(deltaSeconds)
         : this.battery.discharge(deltaSeconds, Math.abs(command.linear));
 
-    if (battery.soc < ROBOT_CONFIG.battery.lowSocThreshold && currentState.kind !== 'CHARGING') {
+    if (battery.soc < ROBOT_CONFIG.battery.lowSocThreshold && motionState.kind !== 'CHARGING') {
       this.eventBus.emit('robot:battery-low', { robotId: this.id, level: battery.soc });
     }
 
@@ -125,7 +160,7 @@ export class RobotController {
       currentTask: this.currentTask,
       path: this.path,
       eta: this.estimateEta(this.path.slice(this.pathIndex)),
-      payload: this.currentTask?.payload ?? null,
+      payload: this.payloadOnboard ? this.currentTask?.payload ?? null : null,
       armAngle,
       armState: this.servo.state(),
       sensors,
@@ -151,24 +186,29 @@ export class RobotController {
     return this.latestTwin;
   }
 
+  /** Return the robot's current pose for route replanning. */
+  public currentPose(): Pose2D {
+    return this.pose;
+  }
+
   /** Trigger an emergency stop state. */
   public emergencyStop(reason: string, timestamp: number): void {
     this.stateMachine.transition({ kind: 'EMERGENCY_STOP', reason, triggeredAt: timestamp });
     this.eventBus.emit('robot:emergency-stop', { robotId: this.id, reason });
   }
 
-  private followPath(deltaSeconds: number): { readonly linear: number; readonly angular: number } {
+  private followPath(deltaSeconds: number, timestamp: number): { readonly linear: number; readonly angular: number } {
     const target = this.path[this.pathIndex];
     if (!target) {
-      this.stateMachine.transition(idleState(performance.now()));
+      this.completeCurrentSegment(timestamp);
       return { linear: 0, angular: 0 };
     }
 
     const distance = this.solver.distanceTo(this.pose, target);
-    if (distance < 0.15) {
+    if (distance < 0.6) {
       this.pathIndex += 1;
       if (this.pathIndex >= this.path.length) {
-        this.stateMachine.transition(idleState(performance.now()));
+        this.completeCurrentSegment(timestamp);
         return { linear: 0, angular: 0 };
       }
     }
@@ -176,9 +216,123 @@ export class RobotController {
     const nextTarget = this.path[this.pathIndex] ?? target;
     const desiredHeading = this.solver.headingTo(this.pose, nextTarget);
     const headingError = this.solver.angleError(this.pose.theta, desiredHeading);
-    const angular = this.headingPid.compute(0, -headingError, deltaSeconds);
-    const linear = Math.max(0.12, this.drive.maxLinearSpeedMps() * Math.max(0.25, 1 - Math.abs(headingError)));
+    this.headingPid.compute(0, -headingError, deltaSeconds);
+    this.pose = { ...this.pose, theta: desiredHeading };
+    const angular = 0;
+    const linear = Math.min(0.95, this.drive.maxLinearSpeedMps());
     return { linear, angular };
+  }
+
+  private setSegment(phase: MissionPhase, path: readonly Vector2[], timestamp: number): void {
+    this.missionPhase = phase;
+    this.phaseStartedAt = timestamp;
+    this.path = path.slice();
+    this.pathIndex = Math.min(1, Math.max(0, this.path.length - 1));
+    const destination = this.path[this.path.length - 1] ?? this.pose;
+    const state =
+      phase === 'TO_DROPOFF'
+        ? ({
+            kind: 'TRANSPORTING',
+            payload: this.currentTask?.payload ?? {
+              id: 'virtual-payload',
+              itemId: 'merchandise',
+              weightKg: 1,
+              dimensionsM: { width: 0.28, depth: 0.22, height: 0.18 }
+            },
+            destination,
+            eta: this.estimateEta(path)
+          } as const)
+        : ({
+            kind: 'NAVIGATING',
+            destination,
+            path,
+            eta: this.estimateEta(path)
+          } as const);
+
+    if (!this.stateMachine.transition(state)) {
+      this.stateMachine.replace(state);
+    }
+  }
+
+  private completeCurrentSegment(timestamp: number): void {
+    if (this.missionPhase === 'TO_PICKUP') {
+      this.missionPhase = 'LOADING';
+      this.phaseStartedAt = timestamp;
+      this.payloadOnboard = true;
+      this.servo.setTarget(90);
+      this.stateMachine.replace({
+        kind: 'LOADING',
+        targetShelf: this.currentTask?.payload.itemId ?? 'merchandise',
+        step: 'ENGAGE_PAYLOAD',
+        armAngle: this.servo.angle()
+      });
+      return;
+    }
+
+    if (this.missionPhase === 'TO_DROPOFF') {
+      this.missionPhase = 'UNLOADING';
+      this.phaseStartedAt = timestamp;
+      this.servo.setTarget(0);
+      this.stateMachine.replace({
+        kind: 'UNLOADING',
+        targetDock: 'dispatch',
+        step: 'RELEASE_PAYLOAD',
+        armAngle: this.servo.angle()
+      });
+      return;
+    }
+
+    if (this.missionPhase === 'TO_CHARGER') {
+      this.missionPhase = 'CHARGING';
+      this.phaseStartedAt = timestamp;
+      this.stateMachine.replace({
+        kind: 'CHARGING',
+        stationId: 'nearest-charger',
+        chargeLevel: this.battery.snapshot().soc,
+        eta: 4
+      });
+      return;
+    }
+
+    this.missionPhase = 'IDLE';
+    this.stateMachine.replace(idleState(timestamp));
+  }
+
+  private stepMissionActions(timestamp: number): void {
+    const elapsed = timestamp - this.phaseStartedAt;
+
+    if (
+      (this.missionPhase === 'TO_PICKUP' ||
+        this.missionPhase === 'TO_DROPOFF' ||
+        this.missionPhase === 'TO_CHARGER') &&
+      elapsed > 3600
+    ) {
+      const destination = this.path[this.path.length - 1];
+      if (destination) {
+        this.pose = { x: destination.x, y: destination.y, theta: this.pose.theta };
+      }
+      this.completeCurrentSegment(timestamp);
+      return;
+    }
+
+    if (this.missionPhase === 'LOADING' && elapsed > 1100) {
+      this.payloadOnboard = true;
+      this.servo.setTarget(20);
+      this.setSegment('TO_DROPOFF', this.dropoffPath, timestamp);
+      return;
+    }
+
+    if (this.missionPhase === 'UNLOADING' && elapsed > 1100) {
+      this.payloadOnboard = false;
+      this.servo.setTarget(0);
+      this.setSegment('TO_CHARGER', this.chargerPath, timestamp);
+      return;
+    }
+
+    if (this.missionPhase === 'CHARGING' && elapsed > 4500) {
+      this.missionPhase = 'IDLE';
+      this.stateMachine.replace(idleState(timestamp));
+    }
   }
 
   private estimateEta(path: readonly Vector2[]): number {
@@ -248,7 +402,7 @@ export class RobotController {
       currentTask: this.currentTask,
       path: this.path,
       eta: this.estimateEta(this.path),
-      payload: this.currentTask?.payload ?? null,
+      payload: this.payloadOnboard ? this.currentTask?.payload ?? null : null,
       armAngle: this.servo.angle(),
       armState: this.servo.state(),
       sensors,

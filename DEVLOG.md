@@ -48,3 +48,17 @@
 **Rationale:** The first implementation technically rendered, but the robot was too small, obstacles were not legible, and the UI overwhelmed the simulation. The first screen must communicate a live logistics simulation immediately.
 **Trade-off:** Fewer panels are visible by default. Deep telemetry still exists in the codebase, but the first-load surface now prioritizes operational clarity.
 **Files affected:** `src/ui/UIManager.ts`, `src/rendering/CameraController.ts`, `src/rendering/SceneManager.ts`, `src/rendering/objects/RobotMesh.ts`, `src/rendering/objects/WheelMesh.ts`, `src/rendering/objects/ForkliftArmMesh.ts`, `src/rendering/objects/SensorVisualization.ts`, `config/scenarios/small-warehouse.json`
+
+## [BUILD-008] - Factory Control and Mission Cycle
+**Date:** 2026-06-12T17:00:54+01:00
+**Decision:** Add a recognizable full factory floor with perimeter walls, overhead beams, stations A/B/C/D, merchandise crate stacks, route controls per car, POV switching, per-car path colors, and a visible mission cycle: pickup, load, transport, unload, charger, charge.
+**Rationale:** A simulation user must immediately understand the factory layout and control both cars. The visual model now shows the facility, the station names, merchandise movement, and operator-configurable routes.
+**Trade-off:** Mission station arrival uses a deterministic timeout fallback so demos remain readable even when the physics follower is still being improved.
+**Files affected:** `src/app.ts`, `src/ui/UIManager.ts`, `src/robot/RobotController.ts`, `src/rendering/SceneManager.ts`, `src/rendering/objects/RobotMesh.ts`, `src/rendering/objects/PathVisualization.ts`, `config/scenarios/small-warehouse.json`
+
+## [BUILD-009] - Factory Overview Polish and Operator Documentation
+**Date:** 2026-06-12T17:06:46+01:00
+**Decision:** Start the app in factory overview, move station labels onto the floor, align station coordinates with route endpoints, add simulation speed controls, and animate front-wheel steering through heading changes.
+**Rationale:** The first-load view should read as an entire factory before the operator chooses a car POV. Floor labels avoid blocking cars, and steering wheels make turns more legible.
+**Trade-off:** The factory labels are procedural canvas textures instead of reusable asset files, keeping the scene self-contained while limiting typographic customization.
+**Files affected:** `README.md`, `ARCHITECTURE.md`, `DEVLOG.md`, `src/app.ts`, `src/ui/UIManager.ts`, `src/rendering/CameraController.ts`, `src/rendering/SceneManager.ts`, `src/rendering/objects/RobotMesh.ts`, `src/rendering/objects/WheelMesh.ts`

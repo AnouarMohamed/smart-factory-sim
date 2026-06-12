@@ -27,10 +27,12 @@ RobotController -> DigitalTwin -> MQTTBroker -> TelemetryStore
 - Differential-drive robot kinematics with wheel RPM, slip flags, velocity, heading, and path following.
 - Typed finite state machine for idle, navigation, blocked, loading, transport, unloading, charging, error, and emergency stop states.
 - Battery, maintenance, servo arm, anomaly, and telemetry models.
+- Two visible logistics cars with cargo crates, lift-arm movement, and steering wheels that yaw through turns.
 
 ### Factory
 
 - Scenario-driven shelves, conveyors, loading docks, chargers, workers, hazards, zones, and shifts.
+- Recognizable factory shell with perimeter walls, overhead beams, charger pads, dispatch docks, merchandise stacks, and stations A, B, C, and D.
 - Worker safety bubbles and autonomous route movement.
 - Weighted navigation grid and A* path planning.
 
@@ -43,7 +45,7 @@ RobotController -> DigitalTwin -> MQTTBroker -> TelemetryStore
 ### Visualization
 
 - Three.js factory floor with shelves, conveyors, worker safety zones, robot meshes, sensor cones, path lines, lighting, and ambient particles.
-- Dense telemetry dashboard with panels for robot state, sensors, PID, MQTT, fleet, inventory, alerts, cloud, OPC-UA, edge, maintenance, profiler, and replay.
+- Simulation-first HUD with factory overview, per-car POV buttons, configurable A-B/A-C/B-D/C-D routes, speed controls, telemetry, incidents, and MQTT feed.
 
 ## Quick Start
 
@@ -54,6 +56,17 @@ pnpm test
 ```
 
 Open the Vite URL printed by `pnpm dev`.
+
+## Simulation Controls
+
+| Control | Behavior |
+|---|---|
+| `Factory` | Returns to the full factory overview camera. |
+| `robot-1`, `robot-2` | Switches to the selected car POV and follows that vehicle. |
+| `A-B`, `A-C`, `B-D`, `C-D` | Reassigns a car to a pickup and dropoff route through stations A, B, C, and D. |
+| `Pause`, `0.5x`, `1x`, `2x` | Changes the simulation clock speed without resetting the scene. |
+
+The default workflow sends both cars through pickup, load, transport, unload, drive-to-charger, and charge phases. Cargo crates appear on the car after loading and disappear after discharge.
 
 ## Built-In Scenarios
 
@@ -103,4 +116,3 @@ tests/       Focused unit tests
 - [CONTRIBUTING.md](CONTRIBUTING.md)
 - [CHANGELOG.md](CHANGELOG.md)
 - [DEVLOG.md](DEVLOG.md)
-

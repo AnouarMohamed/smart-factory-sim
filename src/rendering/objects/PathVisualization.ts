@@ -9,6 +9,8 @@ export class PathVisualization {
   public readonly group = new THREE.Group();
   private line: THREE.Line | null = null;
 
+  public constructor(private readonly color = '#00D4FF') {}
+
   /** Render a route path as a cyan line. */
   public setPath(path: readonly Vector2[]): void {
     if (this.line) {
@@ -19,9 +21,8 @@ export class PathVisualization {
     const geometry = new THREE.BufferGeometry().setFromPoints(points);
     this.line = new THREE.Line(
       geometry,
-      new THREE.LineBasicMaterial({ color: '#00D4FF', transparent: true, opacity: 0.75 })
+      new THREE.LineBasicMaterial({ color: this.color, transparent: true, opacity: 0.78 })
     );
     this.group.add(this.line);
   }
 }
-

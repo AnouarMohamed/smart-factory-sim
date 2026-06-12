@@ -19,4 +19,9 @@ export class WheelMesh {
   public spin(rpm: number, deltaSeconds: number): void {
     this.mesh.rotation.z += (rpm / 60) * Math.PI * 2 * deltaSeconds;
   }
+
+  /** Yaw the wheel so front axles visibly steer through turns. */
+  public steer(angleRad: number): void {
+    this.mesh.rotation.y = angleRad;
+  }
 }
