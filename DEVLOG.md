@@ -104,3 +104,10 @@
 **Rationale:** Teammates need an automated baseline before merging docs, Docker, rendering, or simulation changes.
 **Trade-off:** The workflow does not upload build artifacts yet; it focuses on fast validation.
 **Files affected:** `.github/workflows/ci.yml`, `DEVLOG.md`
+
+## [BUILD-016] - Docker CI Build Gate
+**Date:** 2026-06-13T00:42:59+01:00
+**Decision:** Add a Docker workflow that validates Compose configuration and builds the production image with Buildx.
+**Rationale:** Docker changes need automated confirmation that the image still builds from a clean checkout.
+**Trade-off:** The workflow does not publish images. Publishing should be added only after registry naming and release policy are agreed.
+**Files affected:** `.github/workflows/docker.yml`, `DEVLOG.md`
