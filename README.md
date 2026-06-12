@@ -73,6 +73,21 @@ pnpm test
 
 Open the Vite URL printed by `pnpm dev`.
 
+## Docker
+
+```bash
+docker build -t smart-factory-sim:local .
+docker run --rm -p 8080:8080 smart-factory-sim:local
+```
+
+Open `http://localhost:8080`, or use Compose:
+
+```bash
+docker compose up --build
+```
+
+See [Docker docs](docs/DOCKER.md) for runtime details.
+
 ## Simulation Controls
 
 | Control | Behavior |
@@ -123,6 +138,7 @@ tests/       Focused unit tests
 ## Documentation
 
 - [Documentation Index](docs/README.md)
+- [Docker](docs/DOCKER.md)
 - [PLAN.md](PLAN.md)
 - [ARCHITECTURE.md](ARCHITECTURE.md)
 - [DIGITAL_TWIN.md](DIGITAL_TWIN.md)

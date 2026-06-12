@@ -90,3 +90,10 @@
 **Rationale:** Teammates need a reproducible container runtime for demos, smoke tests, and deployment previews.
 **Trade-off:** The runtime is static-only. It does not include a Node server because the app is a browser-native simulation.
 **Files affected:** `Dockerfile`, `.dockerignore`, `deploy/nginx/default.conf`, `DEVLOG.md`
+
+## [BUILD-014] - Docker Compose Workflow
+**Date:** 2026-06-13T00:41:36+01:00
+**Decision:** Add Compose orchestration and Docker documentation for local container validation.
+**Rationale:** Reviewers should be able to run the production container with one command and understand the runtime file layout.
+**Trade-off:** Compose currently runs one static web service only. MQTT, OPC-UA, and cloud services remain in-browser simulations, not separate containers.
+**Files affected:** `docker-compose.yml`, `docs/DOCKER.md`, `README.md`, `docs/README.md`, `DEVLOG.md`
