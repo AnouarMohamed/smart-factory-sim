@@ -111,3 +111,10 @@
 **Rationale:** Docker changes need automated confirmation that the image still builds from a clean checkout.
 **Trade-off:** The workflow does not publish images. Publishing should be added only after registry naming and release policy are agreed.
 **Files affected:** `.github/workflows/docker.yml`, `DEVLOG.md`
+
+## [BUILD-017] - PR Hygiene Defaults
+**Date:** 2026-06-13T00:43:38+01:00
+**Decision:** Add a pull request template, CODEOWNERS, and Dependabot schedules for npm and GitHub Actions updates.
+**Rationale:** The team needs consistent review prompts, ownership hints, and dependency maintenance once CI and Docker workflows exist.
+**Trade-off:** CODEOWNERS currently points to the repository owner for all areas until a larger team ownership map is available.
+**Files affected:** `.github/PULL_REQUEST_TEMPLATE.md`, `.github/CODEOWNERS`, `.github/dependabot.yml`, `DEVLOG.md`
