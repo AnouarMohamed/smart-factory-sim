@@ -122,6 +122,7 @@ tests/       Focused unit tests
 
 ## Documentation
 
+- [Documentation Index](docs/README.md)
 - [PLAN.md](PLAN.md)
 - [ARCHITECTURE.md](ARCHITECTURE.md)
 - [DIGITAL_TWIN.md](DIGITAL_TWIN.md)
