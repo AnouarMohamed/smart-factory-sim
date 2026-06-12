@@ -1,5 +1,7 @@
 # Architecture
 
+For subsystem ownership, tick timing, mission flow, camera ownership, and hot-reload safety details, see [Architecture Deep Dive](docs/ARCHITECTURE_DEEP_DIVE.md).
+
 ## System Diagram
 
 ```text
