@@ -1,0 +1,32 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "08:00"
+      timezone: Africa/Casablanca
+    open-pull-requests-limit: 5
+    groups:
+      dev-tooling:
+        patterns:
+          - "@typescript-eslint/*"
+          - eslint
+          - prettier
+          - typescript
+          - vite
+          - vitest
+      rendering:
+        patterns:
+          - three
+          - "@types/three"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "08:30"
+      timezone: Africa/Casablanca
+    open-pull-requests-limit: 5
