@@ -12,6 +12,8 @@ This directory collects reviewer-facing documentation for the Smart Factory Sim.
 | [Operations Runbook](OPERATIONS_RUNBOOK.md) | Local startup, demo checklist, control expectations, and release readiness. |
 | [Troubleshooting](TROUBLESHOOTING.md) | Common local, Docker, and CI failures with first-response checks. |
 | [Team Workflow](TEAM_WORKFLOW.md) | Branch naming, stacked PRs, merge order, and review expectations. |
+| [Docker](DOCKER.md) | Production image, Compose workflow, runtime layout, and validation commands. |
+| [CI Pipeline](CI_PIPELINE.md) | GitHub Actions workflows, local parity commands, and the 10-PR merge stack. |
 | [Plan](../PLAN.md) | Original project plan and implementation scope. |
 | [Development Log](../DEVLOG.md) | Architecture decisions, trade-offs, and dated build notes. |
 | [Changelog](../CHANGELOG.md) | Release-facing summary of notable changes. |
