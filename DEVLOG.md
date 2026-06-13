@@ -125,3 +125,10 @@
 **Rationale:** Teammates need a clear merge path and a single pipeline reference after docs, Docker, CI, and repository workflow files are split across multiple PRs.
 **Trade-off:** The pipeline docs describe future extensions that are not implemented yet, such as GHCR publishing and Playwright smoke tests.
 **Files affected:** `docs/CI_PIPELINE.md`, `README.md`, `docs/README.md`, `CHANGELOG.md`, `DEVLOG.md`
+
+## [BUILD-019] - Animated Demo Walkthrough
+**Date:** 2026-06-13T01:08:00+01:00
+**Decision:** Replace the static-feeling WebM with a recorded walkthrough and add an animated GIF preview at the top of the README.
+**Rationale:** Reviewers should see the simulation moving directly from the repository page: factory overview, robot POV switching, route reassignment, and the return to the factory view.
+**Trade-off:** The GIF adds a small binary asset to the repository, but it makes the README demo visible on GitHub without requiring a separate video player.
+**Files affected:** `README.md`, `docs/README.md`, `docs/media/smart-factory-demo.webm`, `docs/media/smart-factory-demo.gif`, `DEVLOG.md`
