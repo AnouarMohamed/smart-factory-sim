@@ -13,7 +13,7 @@
 - Three.js factory scene and robot visualization.
 - Dashboard panels for telemetry, state, sensors, PID, MQTT, fleet, inventory, alerts, cloud, edge, OPC-UA, maintenance, profiler, and replay.
 - Focused unit tests for core, physics, pathfinding, robot, IoT, and fleet behavior.
-- Demo screenshots and video walkthrough in the README.
+- Demo screenshots, animated preview, and video walkthrough in the README.
 - Docker production runtime and Compose workflow.
 - GitHub Actions CI for lint, tests, production build, and Docker image validation.
 - Team workflow docs, PR template, CODEOWNERS, and Dependabot configuration.

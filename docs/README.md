@@ -39,4 +39,5 @@ This directory collects reviewer-facing documentation for the Smart Factory Sim.
 | [Route controls](media/route-controls.png) | Route reassignment state for car paths. |
 | [Paused controls](media/paused-controls.png) | Clock pause state and active route controls. |
 | [Mobile overview](media/mobile-overview.png) | Compact mobile HUD layout. |
-| [Video walkthrough](media/smart-factory-demo.webm) | Short operator workflow demo. |
+| [Animated walkthrough preview](media/smart-factory-demo.gif) | Inline README preview with moving cars, POV switching, and route controls. |
+| [Video walkthrough](media/smart-factory-demo.webm) | Short recorded operator workflow demo. |

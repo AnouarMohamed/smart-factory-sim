@@ -8,6 +8,13 @@ A cinematic industrial control room in the browser, where autonomous logistics r
 ![License](https://img.shields.io/badge/license-MIT-00FF88)
 ![Coverage](https://img.shields.io/badge/tests-core%20covered-FFB300)
 
+## Video Demo
+
+[![Animated smart factory walkthrough showing moving logistics cars, POV switching, route reassignment, and factory overview](docs/media/smart-factory-demo.gif)](docs/media/smart-factory-demo.webm)
+
+[Open the full WebM walkthrough](docs/media/smart-factory-demo.webm).
+
+## Screenshots
 
 | Factory overview | Robot 1 POV |
 |---|---|
