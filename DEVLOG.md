@@ -97,3 +97,31 @@
 **Rationale:** Reviewers should be able to run the production container with one command and understand the runtime file layout.
 **Trade-off:** Compose currently runs one static web service only. MQTT, OPC-UA, and cloud services remain in-browser simulations, not separate containers.
 **Files affected:** `docker-compose.yml`, `docs/DOCKER.md`, `README.md`, `docs/README.md`, `DEVLOG.md`
+
+## [BUILD-015] - Core CI Quality Gate
+**Date:** 2026-06-13T00:42:24+01:00
+**Decision:** Add a GitHub Actions workflow for pnpm install, lint, tests, and production build on pull requests and main pushes.
+**Rationale:** Teammates need an automated baseline before merging docs, Docker, rendering, or simulation changes.
+**Trade-off:** The workflow does not upload build artifacts yet; it focuses on fast validation.
+**Files affected:** `.github/workflows/ci.yml`, `DEVLOG.md`
+
+## [BUILD-016] - Docker CI Build Gate
+**Date:** 2026-06-13T00:42:59+01:00
+**Decision:** Add a Docker workflow that validates Compose configuration and builds the production image with Buildx.
+**Rationale:** Docker changes need automated confirmation that the image still builds from a clean checkout.
+**Trade-off:** The workflow does not publish images. Publishing should be added only after registry naming and release policy are agreed.
+**Files affected:** `.github/workflows/docker.yml`, `DEVLOG.md`
+
+## [BUILD-017] - PR Hygiene Defaults
+**Date:** 2026-06-13T00:43:38+01:00
+**Decision:** Add a pull request template, CODEOWNERS, and Dependabot schedules for npm and GitHub Actions updates.
+**Rationale:** The team needs consistent review prompts, ownership hints, and dependency maintenance once CI and Docker workflows exist.
+**Trade-off:** CODEOWNERS currently points to the repository owner for all areas until a larger team ownership map is available.
+**Files affected:** `.github/PULL_REQUEST_TEMPLATE.md`, `.github/CODEOWNERS`, `.github/dependabot.yml`, `DEVLOG.md`
+
+## [BUILD-018] - CI Pipeline Documentation
+**Date:** 2026-06-13T00:44:16+01:00
+**Decision:** Document GitHub Actions workflows, local parity commands, Docker checks, and the 10-PR merge stack.
+**Rationale:** Teammates need a clear merge path and a single pipeline reference after docs, Docker, CI, and repository workflow files are split across multiple PRs.
+**Trade-off:** The pipeline docs describe future extensions that are not implemented yet, such as GHCR publishing and Playwright smoke tests.
+**Files affected:** `docs/CI_PIPELINE.md`, `README.md`, `docs/README.md`, `CHANGELOG.md`, `DEVLOG.md`
