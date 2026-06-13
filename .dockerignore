@@ -1,0 +1,13 @@
+.git
+.github
+node_modules
+dist
+coverage
+.vite
+.turbo
+*.log
+pnpm-debug.log*
+*.local
+docs/media
+Dockerfile
+docker-compose*.yml
